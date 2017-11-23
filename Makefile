@@ -1,7 +1,12 @@
 # Makefile for the project
 
 TARGET = IdearNiu
-SRCS := $(shell ls *.c)
+
+SRCDIRS  := .
+SRCDIRS  += $(shell ls -R | grep '^\./.*:$$' | awk '{gsub(":","");print}')
+SRCFIXS  := .c
+
+SRCS := $(foreach d,$(SRCDIRS),$(wildcard $(addprefix $(d)/*,$(SRCFIXS))))
 OBJS := $(patsubst %.c,%.o,$(SRCS))
 
 # for debug
@@ -11,7 +16,7 @@ $(warning objs list $(OBJS))
 
 CC = gcc
 CXX = g++
-CFLAGS = -I -Wall
+CFLAGS = -I./include -Wall
 EXTRA_FLAG := -c -D_HOST_
 
 
