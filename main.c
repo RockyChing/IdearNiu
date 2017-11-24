@@ -6,6 +6,7 @@ extern void list_test_entry();
 extern void fifo_test_entry();
 extern void json_test_entry();
 extern void setup_signal_handler();
+extern void socket_tcp_server_test_entry();
 
 
 int main(int argc, char *argv[])
@@ -15,6 +16,7 @@ int main(int argc, char *argv[])
     list_test_entry();
     fifo_test_entry();
     json_test_entry();
+	socket_tcp_server_test_entry();
 
 	while (1) {
 		sleep(5);

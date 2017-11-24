@@ -29,14 +29,16 @@ static void sig_handler(int signo)
 	case SIGTERM:
 	case SIGPIPE:
 	case SIGUSR1:
-		printf("Opps, process terminated!\n");
+	case SIGSEGV:
+		printf("Opps, got signal %d, process terminated!\n", signo);
 		exit(0);
 		break;
 	case SIGCHLD:
+		printf("Opps, got SIGCHLD signal\n");
 		sig_child();
 		break;
 	default:
-		printf("Opps, process terminated!\n");
+		printf("Opps, default got %d signal, process terminated!\n", signo );
 		exit(0);
 		break;
 	}
