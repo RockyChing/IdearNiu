@@ -3,7 +3,7 @@
 
 struct kfifo *test_fifo;
 
-void test_fifo_entry()
+void fifo_test_entry()
 {
     printf("start testing fifo, !!!but not really start!!!\n");
 
