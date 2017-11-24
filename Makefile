@@ -17,11 +17,12 @@ $(warning objs list $(OBJS))
 CC = gcc
 CXX = g++
 CFLAGS = -I./include -Wall
+LDFLAGS  := -lpthread -lrt
 EXTRA_FLAG := -c -D_HOST_
 
 
 $(TARGET): $(OBJS)
-	$(CC) -o $@ $^
+	$(CC) -o $@ $^ $(LDFLAGS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(EXTRA_FLAG) -o $@ $<
