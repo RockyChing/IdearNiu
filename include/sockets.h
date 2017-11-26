@@ -38,6 +38,7 @@ SOCKET sock_accept(SOCKET s, struct sockaddr *addr, socketlen_t *addrlen);
 int sock_write_bytes(SOCKET sockfd, const char *buff, int len);
 int sock_write_string(SOCKET sockfd, const char *buff);
 int sock_write(SOCKET sockfd, const char *fmt, ...);
+int sock_write_line(SOCKET sockfd, const char *fmt, ...);
 int sock_read_lines_np(SOCKET sockfd, char *buff, const int len);
 int sock_read_lines(SOCKET sockfd, char *buff, const int len);
 SOCKET sock_get_server_socket(const int port);

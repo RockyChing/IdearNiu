@@ -311,7 +311,7 @@ int sock_write(SOCKET sockfd, const char *fmt, ...)
  *
  * Potential problems: Will truncate the string if longer than BUFSIZE bytes.
  */
-static int sock_write_line(SOCKET sockfd, const char *fmt, ...)
+int sock_write_line(SOCKET sockfd, const char *fmt, ...)
 {
 	char buff[BUFSIZE];
 	va_list ap;

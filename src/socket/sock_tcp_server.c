@@ -36,6 +36,7 @@ typedef struct {
 typedef struct {
 	contype_t type;
 	time_t connect_time;
+    long read_statistics;
 
 	char *host;
 	char *hostname;
@@ -136,6 +137,8 @@ static connection_t *create_connection()
 	connection_t *con = (connection_t *) malloc (sizeof (connection_t));
 	if (!con) return NULL;
 	con->type = CONNECT_TYPE_UNKNOWN;
+    con->connect_time = 0;
+    con->read_statistics = 0;
 	con->sin = NULL;
 	con->host = NULL;
 	con->hostname = NULL;
@@ -157,12 +160,13 @@ static void clean_connection(connection_t *con)
 	free(con);
 }
 
-static void handle_recv(const connection_t *con)
+static void handle_recv(const connection_t *new_connection)
 {
 	char buf[BUFSIZE] = {0};
 	int i, res;
 	fd_set rfd;
 	struct timeval tv;
+    connection_t *con = (connection_t *) new_connection;
 	if (!con) return;
 
 	FD_ZERO(&rfd);
@@ -180,11 +184,16 @@ static void handle_recv(const connection_t *con)
 			 */
 			res = recv(con->sock, buf, BUFSIZE, 0);
 			if (res >= 0) {
+                con->read_statistics += res;
 				for (i = 0; i < res; i ++) {
 					printf("%c ", buf[i]);
 				}
 				memset(buf, 0, BUFSIZE);
 				printf("\n");
+                sock_write_line(con->sock, "data received: %ld\n", con->read_statistics);
+                printf("-------------------------\n"
+                       "data received: %ld\n"
+                       "-------------------------\n\n", con->read_statistics);
 			} else {
 				switch (errno){
 				case EINTR:
@@ -306,12 +315,14 @@ static connection_t *get_connection(SOCKET sock)
 		}
 
 		con->type = CONNECT_TYPE_TCP;
+        con->connect_time = get_time();
+        con->read_statistics = 0;
 		con->sock = sockfd;
 		con->sin = sin;
 		con->sinlen = sin_len;
 		con->host = create_malloced_ascii_host(&(sin->sin_addr));
-		sys_debug(2, "DEBUG: Getting new connection on socket %d from host %s",
-					sockfd, con->host == NULL ? "(null)" : con->host);
+		sys_debug(2, "DEBUG: Getting new connection on socket %d from host %s, connect time %s",
+					sockfd, con->host == NULL ? "(null)" : con->host, get_ctime(&con->connect_time));
 		return con;
 	}
 

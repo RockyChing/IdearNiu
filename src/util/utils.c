@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <errno.h>
 
+#include <utils.h>
 #include <log_util.h>
 
 #define error_null() sys_debug(1, "ERROR: %s() called with NULL!", __FUNCTION__)
@@ -49,5 +50,16 @@ int sys_strcasecmp (const char *s1, const char *s2)
 		return 0;
 	}
 	return strcasecmp (s1, s2);
+}
+
+time_t get_time()
+{
+    return time(NULL);
+}
+
+char *get_ctime(const time_t *t)
+{
+    char *str_time = ctime(t);
+    return str_time ? str_time : "(null)";
 }
 
