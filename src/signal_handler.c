@@ -5,6 +5,59 @@
 #include <wait.h>
 
 #include <log_util.h>
+
+// #define SIGHUP		 1
+// #define SIGINT		 2
+// #define SIGQUIT		 3
+// #define SIGILL		 4
+// #define SIGTRAP		 5
+// #define SIGABRT		 6
+// #define SIGIOT		 6
+// #define SIGBUS		 7
+// #define SIGFPE		 8
+// #define SIGKILL		 9
+// #define SIGUSR1		10
+// #define SIGSEGV		11
+// #define SIGUSR2		12
+// #define SIGPIPE		13
+// #define SIGALRM		14
+// #define SIGTERM		15
+// #define SIGSTKFLT	16
+// #define SIGCHLD		17
+// #define SIGCONT		18
+// #define SIGSTOP		19
+// #define SIGTSTP		20
+// #define SIGTTIN		21
+// #define SIGTTOU		22
+// #define SIGURG		23
+// #define SIGXCPU		24
+// #define SIGXFSZ		25
+// #define SIGVTALRM	26
+// #define SIGPROF		27
+// #define SIGWINCH	28
+// #define SIGIO		29
+// #define SIGPOLL		SIGIO
+// /*
+// #define SIGLOST		29
+// */
+// #define SIGPWR		30
+// #define SIGSYS		31
+// #define	SIGUNUSED	31
+
+static char *signal_string[] = {
+	"Got signal: SIGHUP",  "Got signal: SIGINT",   "Got signal: SIGQUIT",
+	"Got signal: SIGILL",  "Got signal: SIGTRAP",  "Got signal: SIGABRT/SIGIOT",
+	"Got signal: SIGBUS",  "Got signal: SIGFPE",   "Got signal: SIGKILL",
+	"Got signal: SIGUSR1", "Got signal: SIGSEGV",
+	"Got signal: SIGUSR2", "Got signal: SIGPIPE",  "Got signal: SIGALRM",
+	"Got signal: SIGTERM", "Got signal: SIGSTKFLT", "Got signal: SIGCHLD",
+	"Got signal: SIGCONT", "Got signal: SIGSTOP",  "Got signal: SIGTSTP",
+	"Got signal: SIGTTIN", "Got signal: SIGTTOU",  "Got signal: SIGURG",
+	"Got signal: SIGXCPU", "Got signal: SIGXFSZ",  "Got signal: SIGVTALRM",
+	"Got signal: SIGPROF", "Got signal: SIGWINCH", "Got signal: SIGIO/SIGPOLL/SIGLOST",
+	"Got signal: SIGPWR",  "Got signal: SIGSYS"
+};
+
 static void sig_handler(int signo);
 
 static void sig_child(void)
@@ -24,10 +77,13 @@ static void sig_child(void)
 static void sig_handler(int signo)
 {
 	func_enter();
+	if (signo > 1 && signo < 31)
+		sys_debug(1, "%s", signal_string[signo - 1]);
 	switch (signo) {
+	case SIGPIPE: /* don't exit when socket closeed */
+		break;
 	case SIGINT:
 	case SIGTERM:
-	case SIGPIPE:
 	case SIGUSR1:
 	case SIGSEGV:
 		printf("Opps, got signal %d, process terminated!\n", signo);

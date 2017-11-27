@@ -231,7 +231,7 @@ int sock_write_bytes(SOCKET sockfd, const char *buff, int len)
 		return -1;
 	}
 
-	for(t=0 ; len > 0 ; ) {
+	for(t = 0 ; len > 0 ; ) {
 		int n = send(sockfd, buff + t, len, 0);
 	
 		if (n < 0) {
@@ -246,195 +246,11 @@ int sock_write_bytes(SOCKET sockfd, const char *buff, int len)
 }
 
 /*
- * Write a string to a socket. 
- * Return 1 if all bytes where successfully written, and 0 if not.
- */
-int sock_write_string(SOCKET sockfd, const char *buff)
-{
-	int write_bytes = 0, res = 0, len = sys_strlen(buff);
-
-	if (!sock_valid(sockfd)) {
-		fprintf(stderr,
-			"ERROR: sock_write_string() called with invalid socket\n");
-		return -1;
-	} else if (!buff) {
-		fprintf(stderr,
-			"ERROR: sock_write_string() called with NULL format\n");
-		return -1;
-	}
-
-	/*
-	 * Never use send() to sockets 0 or 1 in Win32.
-	 */
-	if (sockfd == 1 || sockfd == 0) {
-		//if (running == SERVER_RUNNING) {
-		//	write_bytes = fprintf(stdout, "%s", buff);
-		//	fflush(stdout);
-		//}
-	} else {
-		while (write_bytes < len) {
-			res = send(sockfd, &buff[write_bytes],
-				     len - write_bytes, 0);
-			if (res < 0 && !is_recoverable(errno))
-				return 0;
-			if (res > 0)
-				write_bytes += res;
-			else
-				usleep(30000);
-		}
-	}
-
-	return (write_bytes == len ? 1 : 0);
-}
-
-/* 
- * Write a printf() style formatted message to the socket 
- * Return 1 if all bytes where successfully written, and 0 if not.
- *
- * Potential problems: Will truncate the string if longer than BUFSIZE bytes.
- */
-int sock_write(SOCKET sockfd, const char *fmt, ...)
-{
-	char buff[BUFSIZE];
-	va_list ap;
-
-	va_start(ap, fmt);
-	vsnprintf(buff, BUFSIZE, fmt, ap);
-	va_end(ap);
-
-	return sock_write_string(sockfd, buff);
-}
-
-/* 
- * Write a printf() style and newline terminated message to the socket 
- * Return 1 if all bytes where successfully written, and 0 if not.
- *
- * Potential problems: Will truncate the string if longer than BUFSIZE bytes.
- */
-int sock_write_line(SOCKET sockfd, const char *fmt, ...)
-{
-	char buff[BUFSIZE];
-	va_list ap;
-
-	va_start(ap, fmt);
-	vsnprintf(buff, BUFSIZE, fmt, ap);
-	return sock_write(sockfd, "%s\r\n", buff);
-}
-
-/* 
- * Read a HTTP header. A number of lines terminated by a two newlines.
- * Reads no more than len bytes into string pointed to by buff. If the
- * return value is 1, then the string is valid and null terminated.
- *
- * Potential Problems: Usage of errno
- */
-int sock_read_lines_np(SOCKET sockfd, char *buff, const int len)
-{
-	char c = '\0';
-	int read_bytes, pos = 0;
-
-	if (!sock_valid(sockfd)) {
-		sys_debug(1,
-			 "ERROR: sock_read_lines_np() called with invalid socket");
-		return 0;
-	} else if (!buff) {
-		sys_debug(1,
-			 "ERROR: sock_read_lines_np() called with NULL storage pointer");
-		return 0;
-	} else if (len <= 0) {
-		sys_debug(1,
-			 "ERROR: sock_read_lines_np() called with invalid length");
-		return 0;
-	}
-
-	errno = 0;
-	read_bytes = recv(sockfd, &c, 1, 0);
-	if (read_bytes < 0) {
-		sys_debug(1, "DEBUG: Socket error on socket %d: %s", sockfd, strerror(errno));
-		return 0;
-	}
-
-	while ((read_bytes == 1) && (pos < (len - 1))) {
-		if (c != '\r')
-			buff[pos++] = c;
-		if ((pos > 1)
-		    && (buff[pos - 1] == '\n'
-			&& buff[pos - 2] == '\n')) break;
-
-		errno = 0;
-		read_bytes = recv(sockfd, &c, 1, 0);
-		if (read_bytes < 0) {
-			sys_debug(1, "DEBUG: Socket error on socket %d %s", sockfd, strerror(errno));
-			return 0;
-		}
-	}
-
-	if (read_bytes == 1) {
-		buff[pos] = '\0';
-		return 1;
-	} else {
-		return 0;
-	}
-}
-
-int sock_read_lines(SOCKET sockfd, char *buff, const int len)
-{
-	char c[2];
-	int read_bytes, pos = 0;
-
-	if (!sock_valid(sockfd)) {
-		sys_debug(1,
-			 "ERROR: sock_read_lines() called with invalid socket");
-		return 0;
-	} else if (!buff) {
-		sys_debug(1,
-			 "ERROR: sock_read_lines() called with NULL storage pointer");
-		return 0;
-	} else if (len <= 0) {
-		sys_debug(1,
-			 "ERROR: sock_read_lines() called with invalid length");
-		return 0;
-	}
-
-	c[0] = c[1] = '\0';
-
-	errno = 0;
-	read_bytes = recv(sockfd, &c[0], 1, 0);
-
-	if (read_bytes < 0) {
-		sys_debug(1, "DEBUG: Socket error on socket %d %d", sockfd, errno);
-		return 0;
-	}
-
-	while ((read_bytes == 1) && (pos < (len - 1))) {
-		if (c[0] != '\r')
-			buff[pos++] = c[0];
-		if ((pos > 1)
-		    && (buff[pos - 1] == '\n'
-			&& buff[pos - 2] == '\n')) break;
-
-		errno = 0;
-		read_bytes = recv(sockfd, &c[0], 1, 0);
-		if (read_bytes < 0) {
-			sys_debug(1, "DEBUG: Socket error on socket %d %d", sockfd, errno);
-			return 0;
-		}
-	}
-
-	if (read_bytes == 1) {
-		buff[pos] = '\0';
-		return 1;
-	} else {
-		return 0;
-	}
-}
-
-/*
  * Create a socket for all incoming requests on specified port.
  * Bind it to INADDR_ANY (all available interfaces).
  * Return the socket for bound socket, or INVALID_SOCKET if failed.
  */
-SOCKET sock_get_server_socket(const int port)
+SOCKET sock_get_server_socket(int type, const int port)
 {
 	struct sockaddr_in sin;
 	int sin_len, error;
@@ -450,17 +266,24 @@ SOCKET sock_get_server_socket(const int port)
 	/*
 	 * get socket descriptor 
 	 */
-	sockfd = sock_socket (AF_INET, SOCK_STREAM, 0);
+	sockfd = sock_socket(AF_INET, type == SOCK_TYPE_TCP ? SOCK_STREAM : SOCK_DGRAM, 0);
 	if (sockfd == INVALID_SOCKET)
 		return INVALID_SOCKET;
 
 	/*
-	 * Setup socket 
+	 * SO_REUSEADDR - Reuse addresses in bind if *val is nonzero
+	 *
+	 * Normally, the implementation of TCP will prevent us from binding
+	 * the same address until a timeout expires, which is usually on the
+	 * order of several minutes. Luckily, the SO_REUSEADDR socket option
+	 * allows us to bypass thisrestriction
 	 */
-	int tmp = 1;
-	if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR,
-			(const void *) &tmp, sizeof (tmp)) != 0) {
-		sys_debug(1, "ERROR: setsockopt() failed to set SO_REUSEADDR flag. (mostly harmless)");
+	if (type == SOCK_STREAM) {
+		int val = 1;
+		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR,
+				(const void *) &val, sizeof (val)) != 0) {
+			sys_debug(1, "ERROR: setsockopt() failed to set SO_REUSEADDR flag. (mostly harmless)");
+		}
 	}
 
 	/*
@@ -494,7 +317,8 @@ SOCKET sock_get_server_socket(const int port)
 SOCKET sock_connect_wto(const char *hostname, const int port,
 			const int timeout)
 {
-	SOCKET sockfd;
+	SOCKET sockfd = -1;
+#if 0
 	struct sockaddr_in sin, server;
 	struct hostent *host;
 	struct hostent hostinfo;
@@ -514,7 +338,7 @@ SOCKET sock_connect_wto(const char *hostname, const int port,
 		sock_close(sockfd);
 		return INVALID_SOCKET;
 	}
-#if 0
+
 	if (info.myhostname != NULL) {
 		struct sockaddr_in localsin;
 		memset(&localsin, 0, sizeof (struct sockaddr_in));
@@ -689,7 +513,7 @@ int sock_tcp_get_hostmac(int fd,char *buf,int buf_len,const char *prefix)
 
 	int i = 0, ret = 0;
     struct ifreq ifr_info;
-	
+
 	for(i = 0; i < 10; i ++) {
 		memset(&ifr_info,0,sizeof(struct ifreq));     
 		snprintf(ifr_info.ifr_name,IFNAMSIZ,"%s%d",prefix,i);
@@ -697,12 +521,12 @@ int sock_tcp_get_hostmac(int fd,char *buf,int buf_len,const char *prefix)
 		if(ret == 0)
 			break;
 	}
-	
+
 	if(ret < 0){
 		printf("SOCKET_tcpGetHostMacAddress failed.\n");
 		return -1;
 	}
-	
+
 	snprintf(buf,buf_len,"%02x:%02x:%02x:%02x:%02x:%02x",
 			(unsigned char)ifr_info.ifr_hwaddr.sa_data[0],
 			(unsigned char)ifr_info.ifr_hwaddr.sa_data[1],
@@ -711,7 +535,7 @@ int sock_tcp_get_hostmac(int fd,char *buf,int buf_len,const char *prefix)
 			(unsigned char)ifr_info.ifr_hwaddr.sa_data[4],
 			(unsigned char)ifr_info.ifr_hwaddr.sa_data[5]);
 	//printf("host_mac: %s\n",buf);
-	
+
 	return 0;
 }
 
@@ -751,6 +575,69 @@ char *sock_get_local_ipaddress()
 		return nstrdup("dynamic");
 	}
 #endif
+	return NULL;
+}
+
+static char *make_host_from_ip(const struct in_addr *in, char *host)
+{
+	if (!in || !host) {
+		sys_debug(1, "ERROR: makeasciihost called with NULL arguments");
+		return NULL;
+	}
+
+	/**
+	 * inet_ntoa() works only with IPv4 addresses
+	 * inet_ntop() support similar functionality
+	 * and work with both IPv4 and IPv6 addresses
+	 */
+	//strncpy(host, inet_ntoa(*in), 20);
+	if (inet_ntop(AF_INET, (void *)in, host, INET_ADDRSTRLEN)) {
+	} else {
+		/**
+		 * NULL is returned if there was an error, with errno set to indicate the error.
+		 */
+		sys_debug(1, "ERROR: inet_ntop() return NULL, error: %s", strerror(errno));
+		return NULL;
+	}
+
+#if 0
+	unsigned char *s = (unsigned char *)in;
+	int a, b, c, d;
+	a = (int)*s++;
+	b = (int)*s++;
+	c = (int)*s++;
+	d = (int)*s;
+
+	snprintf(buf, 20, "%d.%d.%d.%d", a, b, c, d);
+#endif
+	return host;
+}
+
+/**
+ * make a host name like "192.168.1.88"
+ * caller need to release memory
+ */
+char *make_host(struct in_addr *in)
+{
+	/**
+	 * INET_ADDRSTRLEN is large enough to hold a text string
+	 * representing an IPv4 address, and INET6_ADDRSTRLEN is
+	 * large enough to hold a text string representing an IPv6 address.
+	 */
+	char *buf = NULL;
+	if (!in) {
+		sys_debug(1, "ERROR: Dammit, don't send NULL's to create_malloced_ascii_host()");
+		return NULL;
+	}
+
+	buf = (char *) malloc(INET_ADDRSTRLEN + 1);
+	if (!buf) {
+		sys_debug(1, "ERROR: Opps, malloc() return NULL");
+		return NULL;
+	}
+
+	buf[INET_ADDRSTRLEN] = '\0';
+	return make_host_from_ip(in, buf);
 }
 
 void init_network()
@@ -764,6 +651,30 @@ void init_network()
 	 * used to close the file.
 	 */
 	//sethostent(1);
+	server_info.myhostname = NULL;
+	server_info.server_name = NULL;
+	server_info.version = NULL;
+
+	server_info.tcp_port = 8000;
+	server_info.tcp_listen_sock = -1;
+	server_info.tcp_running = SERVER_INITIALIZING;
+
+	server_info.udp_port = 8800;
+	server_info.udp_listen_sock = -1;
+	server_info.udp_running = SERVER_INITIALIZING;
 }
 
+void deinit_network()
+{
+	if (server_info.myhostname) {
+		free(server_info.myhostname);
+	} else if (server_info.server_name) {
+		free(server_info.server_name);
+	} else if (server_info.version) {
+		free(server_info.version);
+	} else {
+	}
+
+	init_network();
+}
 
