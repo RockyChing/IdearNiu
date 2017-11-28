@@ -233,8 +233,56 @@ int sock_write_bytes(SOCKET sockfd, const char *buff, int len)
 
 	for(t = 0 ; len > 0 ; ) {
 		int n = send(sockfd, buff + t, len, 0);
-	
 		if (n < 0) {
+			if (is_recoverable(errno))
+				continue;
+			sys_debug(1, "ERROR: socket send() error: %s", strerror(errno));
+		    return (t == 0) ? n : t;
+		}
+		t += n;
+		len -= n;
+	}
+
+	return t;
+}
+
+/*
+ * Write len bytes from buf to the socket.
+ * Returns the return value from sendto()
+ * This is used by UDP socket
+ */
+int sock_sendto(int sockfd, const void *buff, size_t len, int flags,
+                   const struct sockaddr *dest_addr, socklen_t addrlen)
+{
+	int t;
+
+	if (!buff) {
+		sys_debug(1,
+			 "ERROR: sock_write_bytes() called with NULL data");
+		return -1;
+	} else if (len <= 0) {
+		sys_debug(1,
+			 "ERROR: sock_write_bytes() called with zero or negative len");
+		return -1;
+	} else if (!sock_valid(sockfd)) {
+		sys_debug(1,
+			 "ERROR: sock_write_bytes() called with invalid socket");
+		return -1;
+	} else if (!dest_addr) {
+		sys_debug(1,
+			 "ERROR: sock_write_bytes() called with invalid dest_addr");
+		return -1;
+	} else if (addrlen != sizeof(struct sockaddr)) {
+		sys_debug(1,
+			 "ERROR: sock_write_bytes() called with invalid socklen_t");
+		return -1;
+	}
+
+	for(t = 0 ; len > 0 ; ) {
+		int n = sendto(sockfd, buff + t, len, 0, dest_addr, addrlen);
+		if (n < 0) {
+			if (is_recoverable(errno))
+				continue;
 			sys_debug(1, "ERROR: socket send() error: %s", strerror(errno));
 		    return (t == 0) ? n : t;
 		}

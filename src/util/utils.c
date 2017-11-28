@@ -10,7 +10,7 @@
 
 int is_recoverable (int error)
 {
-	if ((error == EAGAIN) || (error == EINTR) || (error == EINPROGRESS))
+	if ((error == EAGAIN) || (error == EINPROGRESS))
 		return 1;
 
 	return 0;

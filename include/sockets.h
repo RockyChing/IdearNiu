@@ -79,6 +79,8 @@ SOCKET sock_socket(int domain, int type, int protocol);
 int sock_close(SOCKET sockfd);
 SOCKET sock_accept(SOCKET s, struct sockaddr *addr, socketlen_t *addrlen);
 int sock_write_bytes(SOCKET sockfd, const char *buff, int len);
+int sock_sendto(int sockfd, const void *buff, size_t len, int flags,
+                   const struct sockaddr *dest_addr, socklen_t addrlen);
 SOCKET sock_get_server_socket(const int type, const int port);
 SOCKET sock_connect_wto(const char *hostname, const int port, const int timeout);
 int socket_tcp_get_hostip(int fd,char *buf,int buf_len,const char *prefix);
@@ -87,6 +89,7 @@ char *sock_get_local_ipaddress();
 char *make_host(struct in_addr *in);
 void init_network();
 void deinit_network();
+int is_netdev_has_ip(const char *ifname);
 
 server_info_t server_info;
 

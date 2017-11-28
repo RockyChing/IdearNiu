@@ -72,7 +72,7 @@ void clean_connection(connection_t *con)
 		free(con->hostname);
 	} else if (con->sin) {
 		free(con->sin);
-	} else if (con->sock) {
+	} else if (con->sock >= 0) {
 		sock_close(con->sock);
 		con->sock = -1;
 	} else {
@@ -122,52 +122,21 @@ static void handle_recv(const connection_t *new_connection)
                        "-------------------------\n\n", con->read_statistics);
 			} else {
 				/* recv() error */
-				con->running = CLIENT_DYING;
-				switch (errno){
-				case EINTR:
-					sys_debug(1, "Interrupt signal EINTR caught");
-					break;
-				case EAGAIN:
-					sys_debug(1, "Interrupt signal EAGAIN caught");
-					break;
-				case EBADF:
-					sys_debug(1, "Interrupt signal EBADF caught");
-					break;
-				case EINVAL:
-					sys_debug(1, "Interrupt signal EINVAL caught");
-					break;
-				case EFAULT:
-					sys_debug(1, "Interrupt signal EFAULT caught");
-					break;
-				case EIO:
-					sys_debug(1, "Interrupt signal EIO caught");
-					break;
-				case EISDIR:
-					sys_debug(1, "Interrupt signal EISDIR caught");
-					break;
-				default:
-					sys_debug(1, "Unknown interrupt signal caught\n");
+				if (EAGAIN == errno) {
+					sys_debug(1, "signal EAGAIN caught");
+				} else {
+					con->running = CLIENT_DYING;
+					sys_debug(1, "signal caught, %s", strerror(errno));
 				}
 			}
 		}
 	} else if (ret == 0) {
 	} else {
-		con->running = CLIENT_DYING;
-		switch (errno){
-		case EINTR:
-			sys_debug(1, "Interrupt signal EINTR caught");
-			break;
-		case EAGAIN:
-			sys_debug(1, "Interrupt signal EAGAIN caught");
-			break;
-		case EBADF:
-			sys_debug(1, "Interrupt signal EBADF caught");
-			break;
-		case EINVAL:
-			sys_debug(1, "Interrupt signal EINVAL caught");
-			break;
-		default:
-			sys_debug(1, "Unknown interrupt signal caught\n");
+		if (EAGAIN == errno) {
+			sys_debug(1, "signal EAGAIN caught");
+		} else {
+			con->running = CLIENT_DYING;
+			sys_debug(1, "signal caught, %s", strerror(errno));
 		}
 	}
 }
