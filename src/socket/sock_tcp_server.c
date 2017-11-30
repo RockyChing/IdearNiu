@@ -58,8 +58,10 @@ connection_t *create_connection()
     con->read_statistics = 0;
 	con->host = NULL;
 	con->hostname = NULL;
+	con->hostip = NULL;
 	con->sin = NULL;
 	con->sinlen = con->sock = -1;
+	con->port = 0;
 	return con;
 }
 
@@ -70,7 +72,9 @@ void clean_connection(connection_t *con)
 		free(con->host);
 	} else if (con->hostname) {
 		free(con->hostname);
-	} else if (con->sin) {
+	} else if (con->hostip) {
+		free(con->hostip);
+	}  else if (con->sin) {
 		free(con->sin);
 	} else if (con->sock >= 0) {
 		sock_close(con->sock);
@@ -104,7 +108,7 @@ static void handle_recv(const connection_t *new_connection)
 			 * or −1 on error
 			 */
 			nr = recv(con->sock, buf, BUFSIZE, 0);
-			if (nr >= 0) {
+			if (nr > 0) {
                 con->read_statistics += nr;
 				for (i = 0; i < nr; i ++) {
 					printf("%c", buf[i]);
@@ -120,23 +124,26 @@ static void handle_recv(const connection_t *new_connection)
                 printf("-------------------------\n"
                        "data received: %ld\n"
                        "-------------------------\n\n", con->read_statistics);
+			} else if (nr == 0) {
+				con->running = CLIENT_DYING;
+				sys_debug(1, "peer has done an orderly shutdown");
 			} else {
 				/* recv() error */
 				if (EAGAIN == errno) {
-					sys_debug(1, "signal EAGAIN caught");
+					sys_debug(1, "recv() got EAGAIN");
 				} else {
 					con->running = CLIENT_DYING;
-					sys_debug(1, "signal caught, %s", strerror(errno));
+					sys_debug(1, "recv() errno,, %s", strerror(errno));
 				}
 			}
 		}
 	} else if (ret == 0) {
 	} else {
 		if (EAGAIN == errno) {
-			sys_debug(1, "signal EAGAIN caught");
+			sys_debug(1, "select() got EAGAIN");
 		} else {
 			con->running = CLIENT_DYING;
-			sys_debug(1, "signal caught, %s", strerror(errno));
+			sys_debug(1, "select() errno, %s", strerror(errno));
 		}
 	}
 }

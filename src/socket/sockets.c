@@ -359,159 +359,74 @@ SOCKET sock_get_server_socket(int type, const int port)
 }
 
 /*
- * Connect to hostname on specified port and return the created socket.
- * Assert Class: 3
+ * Connect to a server on 
+ * @srvip Specific the server IP and specified port
+ * @port server listen port with
+ * @timeout in miliseconds and return the created socket.
  */
-SOCKET sock_connect_wto(const char *hostname, const int port,
+SOCKET sock_connect(const char *srvip, const int port,
 			const int timeout)
 {
-	SOCKET sockfd = -1;
-#if 0
-	struct sockaddr_in sin, server;
-	struct hostent *host;
-	struct hostent hostinfo;
-	char buf[BUFSIZE];
-	int error;
+	SOCKET sockfd = INVALID_SOCKET;
+	struct sockaddr_in server;
+	const socklen_t sinlen = sizeof(struct sockaddr_in);
 
-	if (!hostname || !hostname[0]) {
-		sys_debug(1, "ERROR: sock_connect() called with NULL or empty hostname");
-		return INVALID_SOCKET;
-	} else if (port <= 0) {
-		sys_debug(1, "ERROR: sock_connect() called with invalid port number");
-		return INVALID_SOCKET;
-	}
+	int ret;
+	struct timeval timeo;
 
-	sockfd = sock_socket(AF_INET, SOCK_STREAM, 0);
-	if (sockfd == INVALID_SOCKET) {
+	do {
+		if (!srvip) {
+			sys_debug(1, "ERROR: sock_connect() called with NULL or empty server ip");
+			break;
+		} else if (port <= 0) {
+			sys_debug(1, "ERROR: sock_connect() called with invalid port number");
+			break;
+		}
+
+		sockfd = sock_socket(AF_INET, SOCK_STREAM, 0);
+		if (sockfd == INVALID_SOCKET) {
+			break;
+		}
+
+		bzero(&server, sinlen);
+		server.sin_family = AF_INET;
+		server.sin_port = htons(port);
+		server.sin_addr.s_addr= inet_addr(srvip);
+
+		sys_debug(1, "DEBUG: sock_connect() server: %s", srvip);
+		ret = connect(sockfd, (struct sockaddr *) &server, sizeof(server));
+		if (ret != 0) {
+			sys_debug(1, "ERROR: connect() says: %s", strerror(errno));
+			break;
+		}
+
+		sys_debug(3, "DEBUG: sock_connect(): non blocking connect sucess!");
+		sock_set_blocking(sockfd, SOCKET_NONBLOCK);
+
+		if (timeout <= 0) {
+			timeo.tv_sec = 10; /* set default timeout 10s */
+			timeo.tv_usec = 0;
+		} else {
+			timeo.tv_sec = timeout / 1000;
+			timeo.tv_usec = (timeout % 1000) * 1000;
+		}
+
+		/**
+		 * On success, zero is returned for the standard options
+		 * On error, -1 is returned, and errno is set appropriately
+		 */
+		if (-1 == setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeo, sizeof(struct timeval)) ||
+			-1 == setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeo, sizeof(struct timeval))) {
+			sys_debug(1, "ERROR: setsockopt() set SO_TIMEO: %s", strerror(errno));
+			break;
+		}
+		return sockfd;
+	} while (0);
+
+	if (sock_valid(sockfd))
 		sock_close(sockfd);
-		return INVALID_SOCKET;
-	}
 
-	if (info.myhostname != NULL) {
-		struct sockaddr_in localsin;
-		memset(&localsin, 0, sizeof (struct sockaddr_in));
-
-		xa_debug(2, "DEBUG: Trying to bind to %s", info.myhostname);
-
-		localsin.sin_addr = localaddr;
-		localsin.sin_family = AF_INET;
-		localsin.sin_port = 0;
-
-		if (bind
-		    (sockfd, (struct sockaddr *) &localsin,
-		     sizeof (localsin)) == SOCKET_ERROR) {
-			xa_debug(2, "DEBUG: Unable to bind", info.myhostname);
-			write_log(LOG_DEFAULT,
-				  "ERROR: Bind to local address %s failed",
-				  info.myhostname);
-			sock_close(sockfd);
-			return INVALID_SOCKET;
-		}
-	}
-
-	memset(&sin, 0, sizeof (sin));
-	memset(&server, 0, sizeof (struct sockaddr_in));
-
-	if (isdigit((int) hostname[0])
-	    && isdigit((int) hostname[ice_strlen(hostname) - 1])) {
-		if (inet_aton(hostname, (struct in_addr *) &sin.sin_addr) ==
-		    0) {
-			write_log(LOG_DEFAULT, "ERROR: Invalid ip number %s",
-				  hostname);
-			sock_close(sockfd);
-			return INVALID_SOCKET;
-		}
-		memcpy(&server.sin_addr, &sin.sin_addr, sizeof (sin));
-	} else {
-		host =
-			ice_gethostbyname(hostname, &hostinfo, buf, BUFSIZE,
-					  &error);
-		if (host == NULL) {
-			xa_debug(1, "DEBUG: gethostbyname %s failed",
-				 hostname);
-			sock_close(sockfd);
-			ice_clean_hostent();
-			return INVALID_SOCKET;
-		}
-		memcpy(&server.sin_addr, host->h_addr, host->h_length);
-		ice_clean_hostent();
-	}
-
-	server.sin_family = AF_INET;
-	server.sin_port = htons(port);
-
-	{
-		char buf[50];
-
-		makeasciihost(&server.sin_addr, buf);
-		xa_debug(1, "Trying to connect to %s:%d", buf, port);
-	}
-
-	if (timeout > 0) {
-		fd_set wfds;
-		struct timeval tv;
-		int retval;
-		int val;
-		mysocklen_t valsize = sizeof (int);
-
-		xa_debug(3,
-			 "DEBUG: sock_connect(): doing a connection w/ timeout");
-
-		FD_ZERO(&wfds);
-		FD_SET(sockfd, &wfds);
-		tv.tv_sec = timeout;
-		tv.tv_usec = 0;
-
-		sock_set_blocking(sockfd, SOCK_NONBLOCK);
-		retval = connect(sockfd, (struct sockaddr *) &server, sizeof (server));
-		if (retval == 0) {
-			xa_debug(3, "DEBUG: sock_connect(): non blocking connect returned 0!");
-			sock_set_blocking(sockfd, SOCK_BLOCK);
-			return sockfd;
-		} else {
-#ifdef _WIN32
-			if (WSAGetLastError() == WSAEINPROGRESS) {
-#else
-			if (!is_recoverable(errno)) {
-#endif
-				xa_debug(3, "DEBUG: sock_connect(): connect didn't return EINPROGRESS!, was: %d", errno);
-				sock_close(sockfd);
-				return SOCKET_ERROR;
-			}
-		}
-
-		if (select(sockfd + 1, NULL, &wfds, NULL, &tv)) {
-			retval = getsockopt(sockfd, SOL_SOCKET, SO_ERROR,
-					    (void *) &val,
-					    (mysocklen_t *) & valsize);
-			if ((retval == 0) && (val == 0)) {
-				sock_set_blocking(sockfd, SOCK_BLOCK);
-				return sockfd;
-			} else {
-				xa_debug(3,
-					 "DEBUG: sock_connect(): getsockopt returned %i, val = %i, valsize = %i, errno = %i!",
-					 retval, val, valsize, errno);
-				sock_close(sockfd);
-				return SOCKET_ERROR;
-			}
-		} else {
-			xa_debug(3,
-				 "DEBUG: sock_connect(): select returned 0");
-			sock_close(sockfd);
-			return SOCKET_ERROR;
-		}
-	} else {
-		if (connect
-		    (sockfd, (struct sockaddr *) &server,
-		     sizeof (server)) == 0) {
-			return sockfd;
-		} else {
-			sock_close(sockfd);
-			return SOCKET_ERROR;
-		}
-	}
-#endif
-	return sockfd;
+	return INVALID_SOCKET;
 }
 
 /**

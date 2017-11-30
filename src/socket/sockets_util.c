@@ -37,27 +37,23 @@
  *
  * For IPv4 only
  */
-int is_netdev_has_ip(const char *ifname)
+char *get_netdev_ip(const char *ifname)
 {
-	int ret = 0;
+	char * strIP = NULL;
 	SOCKET sockfd;
 	struct ifreq ifr;
 
 	if (!ifname) return 0;
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sockfd == -1) return 0;
+	if (sockfd == -1) return NULL;
 
 	strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
 	/* return the unicast address in the ifr_addr member */
 	if (ioctl(sockfd, SIOCGIFADDR, &ifr) == 0) {
-		char *strIP = inet_ntoa(((struct sockaddr_in*)&(ifr.ifr_addr))->sin_addr);
-		if (strIP) {
-			sys_debug(4, "OK, %s has ip %s", ifname, strIP);
-			ret = 1;
-		}
+		strIP = inet_ntoa(((struct sockaddr_in*)&(ifr.ifr_addr))->sin_addr);
 	}
 
 	close(sockfd);
-	return ret;
+	return strIP ? strdup(strIP) : NULL;
 }
 

@@ -28,6 +28,17 @@ typedef enum {
 	SOCK_TYPE_UNKNOWN = 3
 } socktype_t;
 
+#if 0
+typedef enum {
+	SOCK_TYPE_TCP_SERVER = 0,
+	SOCK_TYPE_TCP_CLIENT = 1,
+	SOCK_TYPE_UDP_SERVER = 2,
+	SOCK_TYPE_UDP_CLIENT = 3,
+	SOCK_TYPE_RAW = 4,
+	SOCK_TYPE_UNKNOWN = 5
+} socktype_t;
+#endif
+
 typedef int SOCKET;
 typedef socklen_t socketlen_t;
 
@@ -66,11 +77,14 @@ typedef struct {
 
 	char *host;
 	char *hostname;
+	char *hostip;
 
 	struct sockaddr_in *sin;
 	socklen_t sinlen;
 	SOCKET sock;
-	int running;
+	pid_t pid;
+	int port;
+	volatile int running;
 } connection_t;
 
 int sock_valid(const SOCKET sockfd);
@@ -82,14 +96,15 @@ int sock_write_bytes(SOCKET sockfd, const char *buff, int len);
 int sock_sendto(int sockfd, const void *buff, size_t len, int flags,
                    const struct sockaddr *dest_addr, socklen_t addrlen);
 SOCKET sock_get_server_socket(const int type, const int port);
-SOCKET sock_connect_wto(const char *hostname, const int port, const int timeout);
+SOCKET sock_connect(const char *srvip, const int port, const int timeout);
 int socket_tcp_get_hostip(int fd,char *buf,int buf_len,const char *prefix);
 int sock_tcp_get_hostmac(int fd,char *buf,int buf_len,const char *prefix);
 char *sock_get_local_ipaddress();
 char *make_host(struct in_addr *in);
 void init_network();
 void deinit_network();
-int is_netdev_has_ip(const char *ifname);
+char *get_netdev_ip(const char *ifname);
+
 
 server_info_t server_info;
 
