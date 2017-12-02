@@ -43,7 +43,7 @@ char *get_netdev_ip(const char *ifname)
 	SOCKET sockfd;
 	struct ifreq ifr;
 
-	if (!ifname) return 0;
+	if (!ifname) return NULL;
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sockfd == -1) return NULL;
 

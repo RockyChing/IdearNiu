@@ -1,3 +1,8 @@
+/**
+ * Parameters check rules:
+ * 1. Function with 'static' stated, we check none;
+ * 2. otherwise, do the check
+ */
 #include <stdio.h>
 #include <unistd.h>
 
