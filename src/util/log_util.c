@@ -5,6 +5,18 @@
 
 #include <log_util.h>
 
+
+/*
+ * format: src/util/log_util.c:25: assert_test_entry(): Assertion `val' failed.
+ */
+void assert_fail(const char *assertion, const char *file,
+		unsigned int line, const char *function)
+{
+	const char *format = "%s:%u: %s(): Assertion `%s' failed.\n";
+	fprintf(stderr, format, file, line, function, assertion);
+	abort();
+}
+
 void sys_debug (int level, char *fmt, ...)
 {
 #if 0

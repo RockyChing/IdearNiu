@@ -17,6 +17,19 @@
  * SCHED_OTHER: 分时调度策略
  * SCHED_FIFO: 实时调度策略，先到先服务。一旦占用cpu则一直运行。一直运行直到有更高优先级任务到达或自己放弃
  * SCHED_RR: 实时调度策略，时间片轮转。当进程的时间片用完，系统将重新分配时间片，并置于就绪队列尾。放在队列尾保证了所有具有相同优先级的RR任务的调度公平
+ *
+ * Refer to Linux command 'chrt' to obtain these message, like:
+ * $ chrt -m
+ *   SCHED_OTHER min/max priority	: 0/0
+ *   SCHED_FIFO min/max priority	: 1/99
+ *   SCHED_RR min/max priority		: 1/99
+ *   SCHED_BATCH min/max priority	: 0/0
+ *   SCHED_IDLE min/max priority	: 0/0
+ *
+ * $ chrt -p $$
+ *   pid 3297's current scheduling policy: SCHED_OTHER
+ *   pid 3297's current scheduling priority: 0
+ *
  */
 static int get_pthread_policy(pthread_attr_t *attr)
 {

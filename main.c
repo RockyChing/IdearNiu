@@ -7,18 +7,21 @@
 #include <unistd.h>
 
 #include <sockets.h>
+#include <log_util.h>
 
+#define TEST_ASSERT 1
 #define TEST_FIFO 0
 #define TEST_LIST 0
 #define TEST_JSON 0
 #define TEST_TCP_SERVER 0
-#define TEST_TCP_CLIENT 1
+#define TEST_TCP_CLIENT 0
 #define TEST_UDP_SERVER 0
 #define TEST_UDP_CLIENT 0
 
 
 
 /** externals */
+extern void assert_test_entry();
 extern void list_test_entry();
 extern void fifo_test_entry();
 extern void json_test_entry();
@@ -32,7 +35,10 @@ int main(int argc, char *argv[])
 {
 	setup_signal_handler();
 
-#if TEST_FIFO == 1
+#if TEST_ASSERT == 1
+	/* trigger a fault */
+	assert_param(argc == 0);
+#elif TEST_FIFO == 1
     list_test_entry();
 #elif TEST_LIST == 1
     fifo_test_entry();

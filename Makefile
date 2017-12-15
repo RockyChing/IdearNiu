@@ -18,7 +18,7 @@ CC = gcc
 CXX = g++
 CFLAGS = -I./include -Wall
 LDFLAGS  := -lpthread -lrt
-EXTRA_FLAG := -c -D_HOST_
+EXTRA_FLAG := -c -DDEBUG_CHECK_PARAMETERS
 
 
 $(TARGET): $(OBJS)
