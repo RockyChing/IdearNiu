@@ -10,7 +10,7 @@
 
 #include <threads.h>
 
-#define SHOW_PTHREAD_PRIORITY 1
+#define SHOW_PTHREAD_PRIORITY 0
 
 #if SHOW_PTHREAD_PRIORITY == 1
 /**

@@ -20,6 +20,15 @@ void assert_fail(const char *, const char*, unsigned int, const char *);
 #define assert_param(expr) ((void)0)
 #endif
 
+
+#define assert_return(expr) assert_param(expr)
+
+#define ASSERT(v) do {                                                 \
+    if ((v) < 0) {                                                     \
+        printf("system-error: '%s' (code: %d)", strerror(errno), errno);  \
+        return -1; }                                                   \
+    } while (0)
+
 extern void sys_debug (int level, char *fmt, ...);
 
 

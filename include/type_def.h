@@ -16,6 +16,13 @@ typedef unsigned short u16;
 typedef unsigned long  u32;
 typedef unsigned long long u64;
 
+typedef short int16_t;
+
+typedef unsigned char  uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned long  uint32_t;
+
+
 typedef s32 status_t;
 typedef s64 nsecs_t;       // nano-seconds
 

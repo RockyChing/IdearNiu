@@ -3,6 +3,13 @@
 #include <sys/types.h>
 #include <time.h>
 
+#ifndef min
+#define min(a,b) (((a) < (b)) ? (a) :(b))
+#endif
+
+#define NUM_ELEMENTS(arr) (sizeof(arr) / sizeof(arr[0]))
+
+
 int is_recoverable (int error);
 size_t sys_strlen(const char *str);
 int sys_strcmp(const char *s1, const char *s2);
