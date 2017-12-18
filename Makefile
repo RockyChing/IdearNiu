@@ -16,7 +16,7 @@ $(warning objs list $(OBJS))
 
 CC = gcc
 CXX = g++
-CFLAGS = -I./include -Wall
+CFLAGS = -I./include -Wall -Wno-unused-function
 LDFLAGS  := -lpthread -lrt
 EXTRA_FLAG := -c -DDEBUG_CHECK_PARAMETERS
 
