@@ -105,7 +105,7 @@ static void ping_init(const char *ip)
 	struct sockaddr_in *sin;
 	const socklen_t addrlen = sizeof(struct sockaddr_in);
 
-	sin = (struct sockaddr_in *) malloc(sizeof(struct sockaddr_in));
+	sin = (struct sockaddr_in *) xmalloc(sizeof(struct sockaddr_in));
 	if (!sin) {
 		sys_debug(1, "ping malloc return NULL pointer");
 		exit(0);

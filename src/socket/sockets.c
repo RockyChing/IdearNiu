@@ -96,7 +96,7 @@ int sock_set_blocking(SOCKET sockfd, const int block)
 
 static socket_t *sock_create (SOCKET s, int domain, int type, int protocol)
 {
-	socket_t *is = (socket_t *) malloc (sizeof (socket_t));
+	socket_t *is = (socket_t *) xmalloc(sizeof (socket_t));
 
 	sys_debug(3, "DEBUG: sock_create(): Creating socket %d at %p", s, is);
 
@@ -593,7 +593,7 @@ char *make_host(struct in_addr *in)
 		return NULL;
 	}
 
-	buf = (char *) malloc(INET_ADDRSTRLEN + 1);
+	buf = (char *) xmalloc(INET_ADDRSTRLEN + 1);
 	if (!buf) {
 		sys_debug(1, "ERROR: Opps, malloc() return NULL");
 		return NULL;

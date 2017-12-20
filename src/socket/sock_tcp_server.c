@@ -50,7 +50,7 @@ void setup_tcp_listeners()
 
 connection_t *create_connection()
 {
-	connection_t *con = (connection_t *) malloc (sizeof (connection_t));
+	connection_t *con = (connection_t *) xmalloc(sizeof (connection_t));
 	if (!con) return NULL;
 
 	con->type = SOCK_TYPE_UNKNOWN;
@@ -224,7 +224,7 @@ static connection_t *get_connection(SOCKET sock)
 			return NULL;
 		}
 
-		con->sin = (struct sockaddr_in *) malloc(sizeof(struct sockaddr_in));
+		con->sin = (struct sockaddr_in *) xmalloc(sizeof(struct sockaddr_in));
 		if (!con->sin) {
 			sys_debug(1, "WARNING: Weird stuff in create_connection. nmalloc returned NULL sin");
 			clean_connection(con);

@@ -48,7 +48,7 @@ static connection_t *get_connection(SOCKET sock)
 	con = create_connection();
 	assert_return(con);
 
-	con->sin = (struct sockaddr_in *) malloc(sizeof(struct sockaddr_in));
+	con->sin = (struct sockaddr_in *) xmalloc(sizeof(struct sockaddr_in));
 	assert_return(con->sin);
 	con->type = SOCK_TYPE_TCP;
     con->connect_time = get_time();
@@ -155,7 +155,6 @@ static void *socket_tcp_epoll_thread(void *arg)
 						char wb[BUFSIZE] = {0};
 						int nw = snprintf(wb, BUFSIZE, "data received: %ld\n", con->read_statistics);
 		                if (sock_write_bytes(con->sock, wb, nw) < 0) {
-							con->running = CLIENT_DYING;
 							sys_debug(1, "ERROR, sent data to TCP client occurs \"%s\"", strerror(errno));
 						}
 		                printf("-------------------------\n"

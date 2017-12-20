@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <sys/types.h>
 #include <errno.h>
@@ -61,5 +63,47 @@ char *get_ctime(const time_t *t)
 {
     char *str_time = ctime(t);
     return str_time ? str_time : "(null)";
+}
+
+/*
+ * Print an error message and exit
+ */
+static void panic(char *str, ...)
+{
+	char buf[BUFSIZE] = {'\0'};
+	va_list ap;
+
+	va_start(ap, str);
+	vsnprintf(buf, BUFSIZE, str, ap);
+	fprintf(stderr, "panic: %s\n", buf);
+	va_end (ap);
+	exit(4);
+}
+
+/*
+ * Panic on failing malloc
+ */
+void *xmalloc(int size)
+{
+	void *ret;
+	if (!size)
+		size ++;
+	ret = malloc(size);
+	if (ret == (void *)0)
+		panic("Couldn't allocate memory!");
+	return ret;
+}
+
+/*
+ * Panic on failing realloc
+ */
+void *xrealloc(void *ptr, int size)
+{
+	void *ret;
+
+	ret = realloc(ptr, size);
+	if(ret == (void *)0)
+		panic("Couldn't re-allocate memory!");
+	return ret;
 }
 

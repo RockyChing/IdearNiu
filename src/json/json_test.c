@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <utils.h>
 #include "cJSON.h"
 
 /**
@@ -39,7 +41,7 @@ static int print_preallocated(cJSON *root)
 	/* create buffer to succeed */
 	/* the extra 5 bytes are because of inaccuracies when reserving memory */
 	len = strlen(out) + 5;
-	buf = (char*)malloc(len);
+	buf = (char*) xmalloc(len);
 	if (buf == NULL) {
 		printf("Failed to allocate memory.\n");
 		exit(1);
@@ -47,7 +49,7 @@ static int print_preallocated(cJSON *root)
 
 	/* create buffer to fail */
 	len_fail = strlen(out);
-	buf_fail = (char*)malloc(len_fail);
+	buf_fail = (char*) xmalloc(len_fail);
 	if (buf_fail == NULL) {
 		printf("Failed to allocate memory.\n");
 		exit(1);

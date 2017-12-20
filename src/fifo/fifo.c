@@ -20,6 +20,8 @@
 	typeof(y) _y = (y);	\
 	(void) (&_x == &_y); \
 	_x > _y ? _x : _y; })
+/* use our min/max macro and prevent warnings */
+#include <utils.h>
 
 #define error() printf("opps, crash in file %s line %d\n", __FUNCTION__, __LINE__)
 #define BUG_ON(condition) do { if (condition) { error(); exit(-1); } } while(0)
@@ -50,7 +52,7 @@ struct kfifo *kfifo_init(unsigned char *buffer, unsigned int size, spinlock_t *l
     /* size must be a power of 2*/
     BUG_ON(!is_power_of_2(size));
 
-    fifo = (struct kfifo *) malloc(sizeof(struct kfifo));
+    fifo = (struct kfifo *) xmalloc(sizeof(struct kfifo));
     BUG_ON(!fifo);
 
     fifo->buffer = buffer;
@@ -77,7 +79,7 @@ struct kfifo *kfifo_alloc(unsigned int size, spinlock_t *lock)
     /* size must be a power of 2*/
     BUG_ON(!is_power_of_2(size));
 
-    buffer = (unsigned char *) malloc(size);
+    buffer = (unsigned char *) xmalloc(size);
     BUG_ON(!buffer);
 
     ret = kfifo_init(buffer, size, lock);

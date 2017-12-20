@@ -18,6 +18,8 @@ int sys_strcasecmp (const char *s1, const char *s2);
 
 time_t get_time();
 char *get_ctime(const time_t *t);
+void *xmalloc(int size);
+void *xrealloc(void *ptr, int size);
 
 #endif
 
