@@ -19,7 +19,7 @@
 #define LISTEN_QUEUE 50
 #endif
 
-static void setup_tcp_listeners()
+void setup_tcp_listeners()
 {
 	int ret = 0;
 	do {

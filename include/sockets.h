@@ -104,6 +104,9 @@ char *make_host(struct in_addr *in);
 void init_network();
 void deinit_network();
 char *get_netdev_ip(const char *ifname);
+void setup_tcp_listeners();
+connection_t *create_connection();
+void clean_connection(connection_t *con);
 
 
 server_info_t server_info;
