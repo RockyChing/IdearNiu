@@ -9,15 +9,22 @@
 
 #define NUM_ELEMENTS(arr) (sizeof(arr) / sizeof(arr[0]))
 
+#define TOK_MAX_SZ	(32)
+#define TOK_MAX_CNT (32)
+struct token {
+	char str[TOK_MAX_CNT][TOK_MAX_SZ];
+	int str_cnt;
+};
 
 int is_recoverable (int error);
-size_t sys_strlen(const char *str);
-int sys_strcmp(const char *s1, const char *s2);
-int sys_strncmp (const char *s1, const char *s2, size_t n);
-int sys_strcasecmp (const char *s1, const char *s2);
+size_t xstrlen(const char *str);
+int xstrcmp(const char *s1, const char *s2);
+int xstrncmp (const char *s1, const char *s2, size_t n);
+int xstrcasecmp (const char *s1, const char *s2);
 
 time_t get_time();
 char *get_ctime(const time_t *t);
+void xsplit(struct token *tok, const char *sentence, int sep);
 void *xmalloc(int size);
 void *xrealloc(void *ptr, int size);
 

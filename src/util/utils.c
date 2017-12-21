@@ -10,6 +10,21 @@
 
 #define error_null() sys_debug(1, "ERROR: %s() called with NULL!", __FUNCTION__)
 
+/*
+ * Print an error message and exit
+ */
+static void panic(char *str, ...)
+{
+	char buf[BUFSIZE] = {'\0'};
+	va_list ap;
+
+	va_start(ap, str);
+	vsnprintf(buf, BUFSIZE, str, ap);
+	fprintf(stderr, "panic: %s\n", buf);
+	va_end (ap);
+	exit(4);
+}
+
 int is_recoverable (int error)
 {
 	if ((error == EAGAIN) || (error == EINPROGRESS))
@@ -18,7 +33,7 @@ int is_recoverable (int error)
 	return 0;
 }
 
-size_t sys_strlen(const char *str)
+size_t xstrlen(const char *str)
 {
 	if (!str) {
 		error_null();
@@ -27,7 +42,7 @@ size_t sys_strlen(const char *str)
 	return strlen(str);
 }
 
-int sys_strcmp(const char *s1, const char *s2)
+int xstrcmp(const char *s1, const char *s2)
 {
 	if (!s1 || !s2) {
 		error_null();
@@ -36,7 +51,7 @@ int sys_strcmp(const char *s1, const char *s2)
 	return strcmp(s1, s2);
 }
 
-int sys_strncmp (const char *s1, const char *s2, size_t n)
+int xstrncmp (const char *s1, const char *s2, size_t n)
 {
 	if (!s1 || !s2) {
 		error_null();
@@ -45,7 +60,7 @@ int sys_strncmp (const char *s1, const char *s2, size_t n)
 	return strncmp(s1, s2, n);
 }
 
-int sys_strcasecmp (const char *s1, const char *s2)
+int xstrcasecmp (const char *s1, const char *s2)
 {
 	if (!s1 || !s2)	{
 		error_null();
@@ -66,18 +81,26 @@ char *get_ctime(const time_t *t)
 }
 
 /*
- * Print an error message and exit
+ * Split a string @sentence with the specified separator @sep, such as:
+ * "$GPRMC,32.8,118.5" --> $GPRMC 32.8 118.5
  */
-static void panic(char *str, ...)
+void xsplit(struct token *tok, const char *sentence, int sep)
 {
-	char buf[BUFSIZE] = {'\0'};
-	va_list ap;
+	const char *str = sentence;
+	char *substr = tok->str[0];
+	assert_param(tok);
+	assert_param(sentence);
+	assert_param(sep > 0);
 
-	va_start(ap, str);
-	vsnprintf(buf, BUFSIZE, str, ap);
-	fprintf(stderr, "panic: %s\n", buf);
-	va_end (ap);
-	exit(4);
+	while (*str) {
+		if (*str == sep) {
+			tok->str_cnt += 1;
+			substr = tok->str[tok->str_cnt];
+		} else {
+			*substr++ = *str;
+		}
+		str++;
+	}
 }
 
 /*
