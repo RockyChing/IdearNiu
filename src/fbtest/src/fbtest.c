@@ -30,7 +30,6 @@
 
 
 #if 1
-/* 一些全局变量的定义 */
 int fd_fb;							// LCD设备驱动的文件句柄
 struct fb_var_screeninfo var;		// 定义LCD的可变参数
 struct fb_fix_screeninfo fix; 		// 定义LCD的固定参数
@@ -51,14 +50,12 @@ static int fb_init()
 		return -1;
 	}
 
-	/* 获取LCD液晶的可变参数 */
 	ret = ioctl(fd_fb, FBIOGET_VSCREENINFO, &var);
 	if(ret == -1) {
 		printf("can't ioctl for /dev/fb0!\n");
 		return -1;
 	}
 
-	/* 获取LCD液晶的固定参数 */
 	ret = ioctl(fd_fb, FBIOGET_FSCREENINFO, &fix);
 	if(ret == -1) {
 		printf("can't ioctl for /dev/fb0!\n");
@@ -93,7 +90,6 @@ static int font_init()
 	ret = fstat(fd_hzk16, &hzk16_stat);
 	if (ret < 0) return -1;
 
-	/* 将汉子库HZK16文件中的内容映射到用户空间 */
 	hzk16mem = mmap(NULL, hzk16_stat.st_size, PROT_READ, MAP_SHARED, fd_hzk16, 0);
 	if(hzk16mem == (char *)-1) {
 		printf("mmap for HZK16 error!\n");
@@ -103,9 +99,6 @@ static int font_init()
 	return 0;
 }
 
-/*	LCD液晶清屏
- *	color : 表示要将屏幕成的颜色
- */
 static void clear_screen(int color)
 {
 	memset(fbmem, color, screen_size);
@@ -120,11 +113,6 @@ static void deinit()
 	close(fd_hzk16);
 }
 
-/*	LCD像素点显示
- *	x : 表示x轴的坐标
- *	y : 表示y轴的坐标
- *	color : 表示像素点要显示的颜色
- */
 static void disp_pixel(int x, int y, int color)
 {
 	__u8 *pen8 = fbmem + y * line_width + x * pixel_width;
@@ -142,19 +130,14 @@ static void disp_pixel(int x, int y, int color)
 	}
 }
 
-/*	LCD显示字符函数
- *	x : 表示要显示的字符的x坐标
- *	y : 表示要显示的字符的y坐标
- *	c : 表示要显示的字符
- */
 static void disp_char(int x, int y, char c)
 {
-	/* 获取字符在字符数组中的起始位置 */
+	/* 获取字符在字符数组中的起始位�?*/
 	unsigned char *buffer = (unsigned char *)&fontdata_8x16[c * 16];
 	unsigned char data;
 	int i, j;
 
-	/* 循环操作将整个字符写入到显存指定位置中，达到在指定位置显示字符 */
+	/* 循环操作将整个字符写入到显存指定位置中，达到在指定位置显示字�?*/
 	for(i = 0; i < 16; i++) {
 		data = buffer[i];
 		for(j = 0; j < 8; j++) {
@@ -188,25 +171,20 @@ static void disp_string(int x, int y, const char *str)
 	}
 }
 
-/*	LCD液晶显示单个汉字
- *	x : 表示x轴的坐标
- *	y : 表示y轴的坐标
- *	str : 表示要显示的汉子的字符编码
- */
 static void disp_single_hzk16(int x, int y, char *str)
 {
-	/* 确定汉字在字符中的位置 */
-	int area = str[0] - 0xa0 -1 ;
+	/* 确定汉字在字符中的位�?*/
+	int area = str[0] - 0xa0 - 1 ;
 	int where = str[1] - 0xa0 - 1;
 	int offset = (area * 94 + where) * 32;
-	__u8 buffer[32] = {
-		0x04 ,0x80 ,0x0E ,0xA0 ,0x78 ,0x90 ,0x08 ,0x90,
-		0x08 ,0x84 ,0xFF ,0xFE ,0x08 ,0x80 ,0x08 ,0x90,
-		0x0A ,0x90 ,0x0C ,0x60 ,0x18 ,0x40 ,0x68 ,0xA0,
-		0x09 ,0x20 ,0x0A ,0x14 ,0x28 ,0x14 ,0x10 ,0x0C
-	}; //(__u8 *) (hzk16mem + offset);
+	__u8 *buffer = (__u8 *) (hzk16mem + offset);
 	__u16 data;
 	int i, j;
+
+	//printf("offset: %d\n", offset);
+	//for(i = 0; i < 32; i ++){
+    //    printf("%02X ", buffer[i]);
+    //}
 
 	/* 循环的将汉字的点阵写入到屏的显存当中 */
 	for (i = 0; i < 16; i ++) {
@@ -221,18 +199,13 @@ static void disp_single_hzk16(int x, int y, char *str)
 	}
 }
 
-/*	LCD显示中文字符串
- *	x : 表示x轴坐标
- *	y : 表示y轴坐标
- *	str : 表示要显示的汉子字符编码的首地址
- */
 static void disp_hzk16(int x, int y, char *str)
 {
 	assert(str);
 	//assert(x < (SCREEN_WIDTH - 16));
 	//assert(y < (SCREEN_HEIGHT - 16));
-	while (str) {
-		disp_single_hzk16(x, y, *str);
+	while (*str) {
+		disp_single_hzk16(x, y, str);
 		str += 2;
 		x += 16;
 		if (x > (SCREEN_WIDTH - 16)) {
@@ -241,6 +214,34 @@ static void disp_hzk16(int x, int y, char *str)
 		}
 
 		if (y > (SCREEN_HEIGHT - 16)) {
+			y = 0;
+		}
+	}
+}
+
+static void disp_mix(int x, int y, char *str)
+{
+	assert(str);
+	while (*str) {
+		if (*str & 0x80) { // chinese
+			disp_single_hzk16(x, y, str);
+			str += 2;
+			x += 16;
+			if (x > (SCREEN_WIDTH - 16)) {
+				x = 0;
+				y += 16;
+			}
+		} else {
+			disp_char(x, y, *str);
+			str += 1;
+			x += 8;
+			if (x > (SCREEN_WIDTH - ASCII_WIDTH)) {
+				x = 0;
+				y += ASCII_HEIGHT;
+			}
+		}
+
+		if (y > (SCREEN_HEIGHT - ASCII_HEIGHT)) {
 			y = 0;
 		}
 	}
@@ -262,7 +263,9 @@ int main(int argc, char **argv)
 	disp_string(1000, 200, "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 
 	sleep(1);
-	disp_single_hzk16(100, 300, "人");
+	disp_single_hzk16(100, 300, "��");	// "�?, 在字库中偏移�?36928
+	disp_hzk16(100, 400, "��·��ƫ��ѩ������ʿɽ"); // 拦路雨偏似雪花，富士山
+	disp_mix(100, 500, "Eason: ��·��ƫ��ѩ������ʿɽ");
 	deinit();
 	return 0;
 }
@@ -306,14 +309,14 @@ static void disp_ascii(pos_t *pos, unsigned char *map, unsigned char ch)
 		for(y = 0; y < 16; y++) {
 			location += x * bytes_per_pixel + y * line_length;
 			if (font_9[y] & (0x80 >> x)) {
-				*(map + location + 0) = 0x00;// 蓝色的色深
-				*(map + location + 1) = 0x00;// 绿色的色深
-				*(map + location + 2) = 0xFF;// 红色的色深
+				*(map + location + 0) = 0x00;// 蓝色的色�?
+				*(map + location + 1) = 0x00;// 绿色的色�?
+				*(map + location + 2) = 0xFF;// 红色的色�?
 				//*(fbp + location + 3) = 0;// 是否透明
 			} else {
-				*(map + location + 0) = 0x00;// 蓝色的色深
-				*(map + location + 1) = 0x00;// 绿色的色深
-				*(map + location + 2) = 0x00;// 红色的色深
+				*(map + location + 0) = 0x00;// 蓝色的色�?
+				*(map + location + 1) = 0x00;// 绿色的色�?
+				*(map + location + 2) = 0x00;// 红色的色�?
 				//*(fbp + location + 3) = 0;// 是否透明
 			}
 		}
@@ -392,9 +395,9 @@ int display(char *framebuffer_devices)
 	for(x = 0; x < vinfo.xres; x ++) {
 		for(y = 0; y < vinfo.yres; y++) {
 			location = x * bytes_per_pixel + y * finfo.line_length;
-			*(fbp + location + 0) = 0xff;// 蓝色的色深
-			*(fbp + location + 1) = 0xff;// 绿色的色深
-			*(fbp + location + 2) = 0xff;// 红色的色深
+			*(fbp + location + 0) = 0xff;// 蓝色的色�?
+			*(fbp + location + 1) = 0xff;// 绿色的色�?
+			*(fbp + location + 2) = 0xff;// 红色的色�?
 			//*(fbp + location + 3) = 0;// 是否透明
 		}
 	}
@@ -408,14 +411,14 @@ int display(char *framebuffer_devices)
 		for(y = 0; y < h; y++) {
 			location = x * bytes_per_pixel + y * finfo.line_length;
 			if (fontdata_8x16[index + y] & (0x80 >> x)) {
-				*(fbp + location + 0) = 0x00;// 蓝色的色深
-				*(fbp + location + 1) = 0x00;// 绿色的色深
-				*(fbp + location + 2) = 0xFF;// 红色的色深
+				*(fbp + location + 0) = 0x00;// 蓝色的色�?
+				*(fbp + location + 1) = 0x00;// 绿色的色�?
+				*(fbp + location + 2) = 0xFF;// 红色的色�?
 				//*(fbp + location + 3) = 0;// 是否透明
 			} else {
-				*(fbp + location + 0) = 0x00;// 蓝色的色深
-				*(fbp + location + 1) = 0x00;// 绿色的色深
-				*(fbp + location + 2) = 0x00;// 红色的色深
+				*(fbp + location + 0) = 0x00;// 蓝色的色�?
+				*(fbp + location + 1) = 0x00;// 绿色的色�?
+				*(fbp + location + 2) = 0x00;// 红色的色�?
 				//*(fbp + location + 3) = 0;// 是否透明
 			}
 		}
@@ -428,9 +431,9 @@ int display(char *framebuffer_devices)
 		for(x = 0; x < vinfo.xres; x ++) {
 			for(y = 0; y < vinfo.yres; y++) {
 				location = x * bytes_per_pixel + y * finfo.line_length;
-				*(fbp + location + 0) = 0x00;// 蓝色的色深
-				*(fbp + location + 1) = 0x00;// 绿色的色深
-				*(fbp + location + 2) = 0xFF;// 红色的色深
+				*(fbp + location + 0) = 0x00;// 蓝色的色�?
+				*(fbp + location + 1) = 0x00;// 绿色的色�?
+				*(fbp + location + 2) = 0xFF;// 红色的色�?
 				//*(fbp + location + 3) = 0;// 是否透明
 			}
 		}
@@ -440,9 +443,9 @@ int display(char *framebuffer_devices)
 		for(x = 0; x < vinfo.xres; x ++) {
 			for(y = 0; y < vinfo.yres; y++) {
 				location = x * bytes_per_pixel + y * finfo.line_length;
-				*(fbp + location + 0) = 0x00;// 蓝色的色深
-				*(fbp + location + 1) = 0xFF;// 绿色的色深
-				*(fbp + location + 2) = 0x00;// 红色的色深
+				*(fbp + location + 0) = 0x00;// 蓝色的色�?
+				*(fbp + location + 1) = 0xFF;// 绿色的色�?
+				*(fbp + location + 2) = 0x00;// 红色的色�?
 				//*(fbp + location + 3) = 0;// 是否透明
 			}
 		}
@@ -452,9 +455,9 @@ int display(char *framebuffer_devices)
 		for(x = 0; x < vinfo.xres; x ++) {
 			for(y = 0; y < vinfo.yres; y++) {
 				location = x * bytes_per_pixel + y * finfo.line_length;
-				*(fbp + location + 0) = 0xFF;// 蓝色的色深
-				*(fbp + location + 1) = 0x00;// 绿色的色深
-				*(fbp + location + 2) = 0x00;// 红色的色深
+				*(fbp + location + 0) = 0xFF;// 蓝色的色�?
+				*(fbp + location + 1) = 0x00;// 绿色的色�?
+				*(fbp + location + 2) = 0x00;// 红色的色�?
 				//*(fbp + location + 3) = 0;// 是否透明
 			}
 		}
@@ -466,9 +469,9 @@ int display(char *framebuffer_devices)
 				location = x * bytes_per_pixel + y * finfo.line_length;
 
 				// 2017/7/3 11:25 矫正BMP显示和LCD显示的上下反 799-y 
-				*(fbp + location + 0) = buffer[54+(1280*(799-y)+x)*3+0];// 蓝色的色深
-				*(fbp + location + 1) = buffer[54+(1280*(799-y)+x)*3+1];// 绿色的色深
-				*(fbp + location + 2) = buffer[54+(1280*(799-y)+x)*3+2];// 红色的色深
+				*(fbp + location + 0) = buffer[54+(1280*(799-y)+x)*3+0];// 蓝色的色�?
+				*(fbp + location + 1) = buffer[54+(1280*(799-y)+x)*3+1];// 绿色的色�?
+				*(fbp + location + 2) = buffer[54+(1280*(799-y)+x)*3+2];// 红色的色�?
 				//*(fbp + location + 3) = 0;// 是否透明
 			}
 		}
