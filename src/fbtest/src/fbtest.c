@@ -132,12 +132,12 @@ static void disp_pixel(int x, int y, int color)
 
 static void disp_char(int x, int y, char c)
 {
-	/* 获取字符在字符数组中的起始位�?*/
+	/* 获取字符在字符数组中的起始位置 */
 	unsigned char *buffer = (unsigned char *)&fontdata_8x16[c * 16];
 	unsigned char data;
 	int i, j;
 
-	/* 循环操作将整个字符写入到显存指定位置中，达到在指定位置显示字�?*/
+	/* 循环操作将整个字符写入到显存指定位置中，达到在指定位置显示字符 */
 	for(i = 0; i < 16; i++) {
 		data = buffer[i];
 		for(j = 0; j < 8; j++) {
@@ -173,7 +173,7 @@ static void disp_string(int x, int y, const char *str)
 
 static void disp_single_hzk16(int x, int y, char *str)
 {
-	/* 确定汉字在字符中的位�?*/
+	/* 确定汉字在字符中的位置 */
 	int area = str[0] - 0xa0 - 1 ;
 	int where = str[1] - 0xa0 - 1;
 	int offset = (area * 94 + where) * 32;
@@ -263,9 +263,9 @@ int main(int argc, char **argv)
 	disp_string(1000, 200, "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 
 	sleep(1);
-	disp_single_hzk16(100, 300, "��");	// "�?, 在字库中偏移�?36928
+	disp_single_hzk16(100, 300, "��");	// 显示“我”字，在字库中的偏移，136928，用于测试
 	disp_hzk16(100, 400, "��·��ƫ��ѩ������ʿɽ"); // 拦路雨偏似雪花，富士山
-	disp_mix(100, 500, "Eason: ��·��ƫ��ѩ������ʿɽ");
+	disp_mix(100, 500, "Eason: ��·��ƫ��ѩ������ʿɽ"); // Eason:拦路雨偏似雪花，富士山
 	deinit();
 	return 0;
 }
