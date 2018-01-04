@@ -206,7 +206,7 @@ static void print_event(int type, int code, int value, int print_flags)
 {
     const char *type_label, *code_label, *value_label;
 
-    if (print_flags & PRINT_LABELS) {
+    if (1) { // (print_flags & PRINT_LABELS) {
         type_label = get_label(ev_labels, type);
         code_label = NULL;
         value_label = NULL;
@@ -252,6 +252,11 @@ static void print_event(int type, int code, int value, int print_flags)
                 break;
         }
 
+#if 1
+        printf("%04x %04x %08x\n", type, code, value);
+        printf("                  %s %s %s\n\n",
+			type_label ? type_label : "null", code_label ? code_label : "null", value_label ? value_label : "null");
+#else
         if (type_label)
             printf("%-12.12s", type_label);
         else
@@ -264,6 +269,7 @@ static void print_event(int type, int code, int value, int print_flags)
             printf(" %-20.20s", value_label);
         else
             printf(" %08x            ", value);
+#endif
     } else {
         printf("%04x %04x %08x", type, code, value);
     }
@@ -685,7 +691,7 @@ int getevent_test_entry(int argc, char *argv[])
 					}
 
 					if (get_time)
-						printf("[%8ld.%0fld] ", event.time.tv_sec, event.time.tv_usec);
+						printf("[%8ld.%06ld] ", event.time.tv_sec, event.time.tv_usec);
 
 					if (print_device)
 						printf("%s: ", device_names[i]);
