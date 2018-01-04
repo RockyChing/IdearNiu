@@ -14,6 +14,7 @@
 #define TEST_LIST 0
 #define TEST_JSON 0
 #define TEST_UART 0
+#define TEST_FB   1
 #define TEST_TCP_SERVER 0
 #define TEST_TCP_CLIENT 0
 #define TEST_UDP_SERVER 0
@@ -28,6 +29,7 @@ extern void list_test_entry();
 extern void fifo_test_entry();
 extern void json_test_entry();
 extern void uart_test_entry();
+extern void fbtest_entry();
 extern void setup_signal_handler();
 extern void socket_tcp_server_test_entry();
 extern void socket_udp_server_test_entry();
@@ -51,6 +53,8 @@ int main(int argc, char *argv[])
     json_test_entry();
 #elif TEST_UART == 1
 	uart_test_entry();
+#elif TEST_FB == 1
+	fbtest_entry();
 #elif TEST_TCP_SERVER == 1
 	init_network();
 	host_ip = get_netdev_ip("ens33");
