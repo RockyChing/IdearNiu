@@ -20,7 +20,8 @@
 #define TEST_UDP_SERVER 0
 #define TEST_UDP_CLIENT 0
 #define TEST_TCP_SEPOLL 0
-#define TEST_GET_EVENT  1
+#define TEST_GET_EVENT  0
+#define TEST_DRIVER_MODEL 1
 
 
 
@@ -36,12 +37,11 @@ extern void socket_tcp_server_test_entry();
 extern void socket_udp_server_test_entry();
 extern void socket_tcp_client_test_entry();
 extern void socket_tcp_server_epoll_test_entry();
-extern int getevent_test_entry(int argc, char *argv[]);
-
+extern int  getevent_test_entry(int argc, char *argv[]);
+extern void driver_model_test_entry();
 
 int main(int argc, char *argv[])
 {
-	const char *host_ip = NULL;
 	setup_signal_handler();
 
 #if TEST_ASSERT == 1
@@ -59,6 +59,8 @@ int main(int argc, char *argv[])
 	fbtest_entry();
 #elif TEST_TCP_SERVER == 1
 	init_network();
+	const char *host_ip = NULL;
+
 	host_ip = get_netdev_ip("ens33");
 	socket_tcp_server_test_entry();
 #elif TEST_TCP_SEPOLL == 1
@@ -73,6 +75,8 @@ int main(int argc, char *argv[])
 	socket_udp_server_test_entry();
 #elif TEST_GET_EVENT == 1
 	return getevent_test_entry(argc, argv);
+#elif TEST_DRIVER_MODEL == 1
+	driver_model_test_entry();
 #endif
 	/* only the superuser can create a raw socket */
 	//ping("8.8.8.8");
