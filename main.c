@@ -21,7 +21,8 @@
 #define TEST_UDP_CLIENT 0
 #define TEST_TCP_SEPOLL 0
 #define TEST_GET_EVENT  0
-#define TEST_DRIVER_MODEL 1
+#define TEST_DRIVER_MODEL 0
+#define TEST_ALSA 1
 
 
 
@@ -37,8 +38,10 @@ extern void socket_tcp_server_test_entry();
 extern void socket_udp_server_test_entry();
 extern void socket_tcp_client_test_entry();
 extern void socket_tcp_server_epoll_test_entry();
-extern int  getevent_test_entry(int argc, char *argv[]);
 extern void driver_model_test_entry();
+
+extern int getevent_test_entry(int argc, char *argv[]);
+extern int alsa_test_entry(int argc, char *argv[]);
 
 int main(int argc, char *argv[])
 {
@@ -77,6 +80,8 @@ int main(int argc, char *argv[])
 	return getevent_test_entry(argc, argv);
 #elif TEST_DRIVER_MODEL == 1
 	driver_model_test_entry();
+#elif TEST_ALSA == 1
+	return alsa_test_entry(argc, argv);
 #endif
 	/* only the superuser can create a raw socket */
 	//ping("8.8.8.8");

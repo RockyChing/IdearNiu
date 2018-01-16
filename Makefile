@@ -18,6 +18,7 @@ CC = gcc
 CXX = g++
 CFLAGS = -I./include -Wall -Wno-unused-function
 LDFLAGS  := -lpthread -lrt
+LDFLAGS += -lasound
 EXTRA_FLAG := -c -DDEBUG_CHECK_PARAMETERS
 
 

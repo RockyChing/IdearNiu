@@ -1,0 +1,6 @@
+-lasound
+compile error:
+alsa/asoundlib.h: No such file or directory
+
+solution:
+sudo apt-get install libasound2-dev
