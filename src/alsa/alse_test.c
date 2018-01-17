@@ -5,7 +5,7 @@
 
 #include <log_util.h>
 
-#define WAV_FILE "./ring.wav"
+#define WAV_FILE "./src/alsa/ring.wav"
 
 /*
  What's a WAV (RIFF) File?
@@ -70,13 +70,13 @@ typedef struct _wav_header {
 } wav_header_t;
 
 wav_header_t wav_header;
-
+#if 0
 static void usage(const char *cmd)
 {
 	printf("Usage: %s ./ring.wav\n", cmd);
 	assert_param(0);
 }
-
+#endif
 static void dump_wav_header(wav_header_t *heder)
 {
 	printf("RIFF: %c%c%c%c\n", heder->rld[0], heder->rld[1], heder->rld[2], heder->rld[3]);
@@ -182,17 +182,13 @@ static int play(FILE *fp)
     return 0;
 }
 
-int alsa_test_entry(int argc, char *argv[])
+void alsa_test_entry()
 {
 	func_enter();
-	if (argc != 2) {
-		usage(argv[0]);
-		return -1;
-	}
 
 	//int nr;
 	FILE *fp;
-	fp = fopen(argv[1], "rb");
+	fp = fopen(WAV_FILE, "rb");
 	assert_return(fp != NULL);
 
 	fread(&wav_header, 1, sizeof(wav_header), fp);
@@ -201,7 +197,5 @@ int alsa_test_entry(int argc, char *argv[])
 	play(fp);
 	fclose(fp);
 	func_exit();
-
-	return 0;
 }
 
