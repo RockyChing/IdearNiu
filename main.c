@@ -22,7 +22,8 @@
 #define TEST_TCP_SEPOLL 0
 #define TEST_GET_EVENT  0
 #define TEST_DRIVER_MODEL 0
-#define TEST_ALSA 1
+#define TEST_ALSA 0
+#define TEST_THREAD_LIMITS 1
 
 
 
@@ -40,6 +41,7 @@ extern void socket_tcp_client_test_entry();
 extern void socket_tcp_server_epoll_test_entry();
 extern void driver_model_test_entry();
 extern void alsa_test_entry();
+extern void thread_limits_test_entry();
 
 extern int getevent_test_entry(int argc, char *argv[]);
 
@@ -83,6 +85,8 @@ int main(int argc, char *argv[])
 #elif TEST_ALSA == 1
 	alsa_test_entry();
 	return 0;
+#elif TEST_THREAD_LIMITS == 1
+	thread_limits_test_entry();
 #endif
 	/* only the superuser can create a raw socket */
 	//ping("8.8.8.8");
