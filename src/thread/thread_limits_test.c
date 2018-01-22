@@ -6,7 +6,7 @@
 #include <log_util.h>
 #include <threads.h>
 
-#define PERIOD (1000 * 100) /* loop period 100 ms*/
+#define PERIOD (1000 * 10) /* loop period 10 ms*/
 // int thread_create(pthread_t *thread_id, void *(*start_routine)(void *), void *arg)
 
 static void *start_routine(void *arg)
