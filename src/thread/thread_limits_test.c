@@ -27,6 +27,7 @@ void thread_limits_test_entry()
 	pthread_t tid;
 	while (1) {
 		thread_total += 1;
+		// If too many threads exist, 'EAGAIN' will be signaled
 		ret = thread_create(&tid, start_routine, &thread_total);
 		if (ret != 0)
 			break;
