@@ -85,6 +85,11 @@ static int get_pthread_priority (pthread_attr_t *attr)
 
 #endif
 
+pthread_t thread_self()
+{
+    return pthread_self();
+}
+
 int thread_create(pthread_t *thread_id, void *(*start_routine)(void *), void *arg)
 {
 	pthread_attr_t attr;

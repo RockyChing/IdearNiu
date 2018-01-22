@@ -17,10 +17,10 @@ typedef struct _thread_t {
 #endif
 
 int thread_create(pthread_t *thread_id, void *(*start_routine)(void *), void *arg);
-inline pthread_t thread_self()
-{
-    return pthread_self();
-}
+pthread_t thread_self();
+//{
+//    return pthread_self();
+//}
 
 
 
