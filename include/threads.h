@@ -17,11 +17,14 @@ typedef struct _thread_t {
 #endif
 
 int thread_create(pthread_t *thread_id, void *(*start_routine)(void *), void *arg);
+#if 0
 inline pthread_t thread_self()
 {
     return pthread_self();
 }
-
+#else
+#define thread_self() {}
+#endif
 
 
 
