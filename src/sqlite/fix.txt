@@ -1,0 +1,2 @@
+sudo apt-get install libsqlite3-dev
+link lib: -lsqlite3

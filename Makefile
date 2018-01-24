@@ -19,6 +19,7 @@ CXX = g++
 CFLAGS = -I./include -Wall -Wno-unused-function
 LDFLAGS  := -lpthread -lrt
 LDFLAGS += -lasound
+LDFLAGS += -lsqlite3
 EXTRA_FLAG := -c -DDEBUG_CHECK_PARAMETERS
 
 
