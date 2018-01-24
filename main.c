@@ -9,13 +9,14 @@
 #include <sockets.h>
 #include <log_util.h>
 
+#define TEST_COMMON 1
 #define TEST_ASSERT 0
 #define TEST_FIFO 0
 #define TEST_LIST 0
 #define TEST_JSON 0
 #define TEST_UART 0
 #define TEST_FB   0
-#define TEST_SOCKET     0
+#define TEST_SOCKET     1
 #define TEST_TCP_SERVER 0
 #define TEST_TCP_CLIENT 0
 #define TEST_UDP_SERVER 0
@@ -31,6 +32,7 @@
 
 
 /** externals */
+extern int  common_test();
 extern void assert_test_entry();
 extern void list_test_entry();
 extern void fifo_test_entry();
@@ -38,7 +40,7 @@ extern void json_test_entry();
 extern void uart_test_entry();
 extern void fbtest_entry();
 extern void setup_signal_handler();
-extern void socket_common_test();
+extern int  socket_common_test();
 extern void socket_tcp_server_test_entry();
 extern void socket_udp_server_test_entry();
 extern void socket_tcp_client_test_entry();
@@ -55,7 +57,9 @@ int main(int argc, char *argv[])
 {
 	setup_signal_handler();
 
-#if TEST_ASSERT == 1
+#if TEST_COMMON == 1
+	return common_test();
+#elif TEST_ASSERT == 1
 	/* trigger a fault */
 	assert_param(argc == 0);
 #elif TEST_FIFO == 1
@@ -69,7 +73,7 @@ int main(int argc, char *argv[])
 #elif TEST_FB == 1
 	fbtest_entry();
 #elif TEST_SOCKET == 1
-	socket_common_test();
+	return socket_common_test();
 #elif TEST_TCP_SERVER == 1
 	init_network();
 	const char *host_ip = NULL;
