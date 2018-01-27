@@ -40,7 +40,7 @@ extern void json_test_entry();
 extern void uart_test_entry();
 extern void fbtest_entry();
 extern void setup_signal_handler();
-extern int  socket_common_test();
+
 extern void socket_tcp_server_test_entry();
 extern void socket_udp_server_test_entry();
 extern void socket_tcp_client_test_entry();
@@ -50,6 +50,7 @@ extern void alsa_test_entry();
 extern void thread_limits_test_entry();
 extern void sqlite_test_entry();
 
+extern int  socket_common_test(int argc, char *argv[]);
 extern int getevent_test_entry(int argc, char *argv[]);
 extern int tinyalsa_test_entry(int argc, char *argv[]);
 
@@ -73,7 +74,7 @@ int main(int argc, char *argv[])
 #elif TEST_FB == 1
 	fbtest_entry();
 #elif TEST_SOCKET == 1
-	return socket_common_test();
+	return socket_common_test(argc, argv);
 #elif TEST_TCP_SERVER == 1
 	init_network();
 	const char *host_ip = NULL;

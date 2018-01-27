@@ -39,32 +39,39 @@ static void print_hostent(struct hostent *hostent)
 		exit(0);
 	}
 
-	printf("official name\t:");
 	if (ht->h_name) {
-		printf("%s\n", ht->h_name);
+		printf("official name");
+		printf("\t:%s\n", ht->h_name);
 	}
 
-	printf("alias name\t:");
-	if (ht->h_aliases) {
+	if (ht->h_aliases && *ht->h_aliases) {
+		printf("alias name");
 		for (; *ht->h_aliases; ht->h_aliases ++)
-			printf("%s\n", *ht->h_aliases);
+			printf("\t:%s\n", *ht->h_aliases);
 	}
 
-	printf("IP\t\t:");
-	if (ht->h_addr_list) {
+	if (ht->h_addr_list && *ht->h_addr_list) {
+		printf("IP");
 		for (; *ht->h_addr_list; ht->h_addr_list ++) {
 			char *ipstr = *ht->h_addr_list;
-			printf("%d.%d.%d.%d\n",
+			printf("\t\t:%d.%d.%d.%d\n",
 				(uint8_t)ipstr[0], (uint8_t)ipstr[1], (uint8_t)ipstr[2], (uint8_t)ipstr[3]);
 		}
 	}
 }
 
-static void test_getip_byhostname()
+static void test_getip_byhostname(int argc, char *argv[])
 {
 	struct hostent *hostent;
+	char const *host_name = NULL;;
 	sys_debug(0, "***test_getip_byhostname enter***");
-	hostent = gethostbyname(TEST_DNS_NAME);
+	if (argc == 1)
+		host_name = TEST_DNS_NAME;
+	else if (argc == 2)
+		host_name = argv[1];
+	else
+		exit(0);
+	hostent = gethostbyname(host_name);
 	if (!hostent) {
 		sys_debug(0, "Error of gethostbyname: %s", strerror(errno));
 	} else {
@@ -73,10 +80,10 @@ static void test_getip_byhostname()
 	sys_debug(0, "***test_getip_byhostname exit***");
 }
 
-int socket_common_test()
+int socket_common_test(int argc, char *argv[])
 {
 	func_enter();
-	test_getip_byhostname();
+	test_getip_byhostname(argc, argv);
 
 
 	func_exit();
