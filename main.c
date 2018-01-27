@@ -9,7 +9,7 @@
 #include <sockets.h>
 #include <log_util.h>
 
-#define TEST_COMMON 1
+#define TEST_COMMON 0
 #define TEST_ASSERT 0
 #define TEST_FIFO 0
 #define TEST_LIST 0
