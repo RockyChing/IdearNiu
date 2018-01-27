@@ -16,7 +16,7 @@
 #define TEST_JSON 0
 #define TEST_UART 0
 #define TEST_FB   0
-#define TEST_SOCKET     1
+#define TEST_SOCKET     0
 #define TEST_TCP_SERVER 0
 #define TEST_TCP_CLIENT 0
 #define TEST_UDP_SERVER 0
@@ -27,7 +27,7 @@
 #define TEST_ALSA 0
 #define TEST_THREAD_LIMITS 0
 #define TEST_TINYALSA 0
-#define TEST_SQLITE 0
+#define TEST_SQLITE 1
 
 
 
