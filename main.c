@@ -9,7 +9,7 @@
 #include <sockets.h>
 #include <log_util.h>
 
-#define TEST_COMMON 0
+//#define TEST_COMMON 0
 #define TEST_ASSERT 0
 #define TEST_FIFO 0
 #define TEST_LIST 0
@@ -27,12 +27,12 @@
 #define TEST_ALSA 0
 #define TEST_THREAD_LIMITS 0
 #define TEST_TINYALSA 0
-#define TEST_SQLITE 1
+#define TEST_SQLITE 0
 
 
 
 /** externals */
-extern int  common_test();
+extern void common_test();
 extern void assert_test_entry();
 extern void list_test_entry();
 extern void fifo_test_entry();
@@ -58,9 +58,8 @@ int main(int argc, char *argv[])
 {
 	setup_signal_handler();
 
-#if TEST_COMMON == 1
-	return common_test();
-#elif TEST_ASSERT == 1
+	common_test();
+#if TEST_ASSERT == 1
 	/* trigger a fault */
 	assert_param(argc == 0);
 #elif TEST_FIFO == 1
