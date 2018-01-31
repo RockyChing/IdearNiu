@@ -304,7 +304,7 @@ SOCKET sock_get_server_socket(int type, const int port)
 	int sin_len, error;
 	SOCKET sockfd;
 
-	if (port < 0) {
+	if (port <= 0) {
 		sys_debug(1, "ERROR: Invalid port number %d. Cannot listen for requests, this is bad!",
 			  port);
 		return INVALID_SOCKET;

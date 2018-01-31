@@ -8,6 +8,7 @@
 #endif
 
 #define NUM_ELEMENTS(arr) (sizeof(arr) / sizeof(arr[0]))
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
 #define TOK_MAX_SZ	(32)
 #define TOK_MAX_CNT (32)

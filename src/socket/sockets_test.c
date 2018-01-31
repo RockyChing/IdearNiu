@@ -17,6 +17,7 @@
 
 #include <sockets.h>
 #include <log_util.h>
+#include <utils.h>
 
 #define TEST_DNS_NAME "live.smart.jd.com"
 
@@ -62,8 +63,9 @@ static void print_hostent(struct hostent *hostent)
 
 static void test_getip_byhostname(int argc, char *argv[])
 {
-	struct hostent *hostent;
-	char const *host_name = NULL;;
+	char const *host_name = NULL;
+	char ip_array[4][16] = { { 0 }, };
+	int i = 0;
 	sys_debug(0, "***test_getip_byhostname enter***");
 	if (argc == 1)
 		host_name = TEST_DNS_NAME;
@@ -71,12 +73,14 @@ static void test_getip_byhostname(int argc, char *argv[])
 		host_name = argv[1];
 	else
 		exit(0);
-	hostent = gethostbyname(host_name);
-	if (!hostent) {
-		sys_debug(0, "Error of gethostbyname: %s", strerror(errno));
-	} else {
-		print_hostent(hostent);
+	getip_byhostname(host_name, ip_array);
+
+	sys_debug(0, "DNS:\t%s", host_name);
+	for (; i < ARRAY_SIZE(ip_array); i ++) {
+		if (!ip_array[i][0]) break;
+		sys_debug(0, "IP:\t%s", ip_array[i]);
 	}
+
 	sys_debug(0, "***test_getip_byhostname exit***");
 }
 

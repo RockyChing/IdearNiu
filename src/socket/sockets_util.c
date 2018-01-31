@@ -12,6 +12,7 @@
 #include <netinet/ip_icmp.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <netdb.h>
 
 #include <sockets.h>
 #include <utils.h>
@@ -55,5 +56,24 @@ char *get_netdev_ip(const char *ifname)
 
 	close(sockfd);
 	return strIP ? strdup(strIP) : NULL;
+}
+
+/**
+ * @ipstr_out Max 4 IPs support
+ */
+void getip_byhostname(const char *hostname, char ipstr_out[4][16])
+{
+	struct hostent *ht = NULL;
+	int i;
+
+	ht = gethostbyname(hostname);
+	assert_return(ht);
+	if (ht->h_addr_list && *ht->h_addr_list) {
+		for (i = 0; i < 4 && (*ht->h_addr_list != NULL); ht->h_addr_list ++, i ++) {
+			char *ipstr = *ht->h_addr_list;
+			snprintf(ipstr_out[i], 16, "%d.%d.%d.%d",
+				(uint8_t)ipstr[0], (uint8_t)ipstr[1], (uint8_t)ipstr[2], (uint8_t)ipstr[3]);
+		}
+	}
 }
 
