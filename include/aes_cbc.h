@@ -3,6 +3,8 @@
 
 #include <string.h>
 
+#include <type_def.h>
+
 #define LITTLE_ENDIAN_ORDER
 
 #define AES_ENC_TYPE   1	/* cipher unique type */

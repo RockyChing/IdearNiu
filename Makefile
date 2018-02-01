@@ -32,5 +32,5 @@ $(TARGET): $(OBJS)
 all: $(TARGET)
 
 clean:
-	rm -rf $(TARGET) *.o *.a *~
+	rm -rf $(TARGET) $(OBJS) *.a *~
 
