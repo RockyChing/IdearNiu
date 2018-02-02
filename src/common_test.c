@@ -6,6 +6,7 @@
 #include <type_def.h>
 #include <log_util.h>
 #include <aes_cbc.h>
+#include <base64.h>
 
 typedef struct _framectrl_80211 {
     //buf[0]
@@ -56,12 +57,26 @@ static void aes_test()
 	printf("\n");
 }
 
+static void base64_test()
+{
+	const char *data = "Emit this is don't instantiate, 20171123_idearniu";
+	byte buf[2048] = { 0 };
+	int out_len = base64_encode((byte *) data, strlen(data), buf, BASE64_DEFAULT);
+
+	int i;
+	for (i = 0; i < out_len; i ++) {
+		printf("%c", buf[i]);
+	}
+	printf("\n\n");
+}
+
 void common_test()
 {
 	func_enter();
 	// result: 'sizeof: 2 bytes'
 	sys_debug(0, "sizeof: %d bytes\n", sizeof(struct _framectrl_80211));
-	aes_test();
+	//aes_test();
+	base64_test();
 
 	func_exit();
 }
