@@ -355,7 +355,7 @@ static int do_decode(byte input[], int len, byte output[], int flags)
         break;
     }
 
-	return len;
+	return len * 3 / 4;
 }
 
 /**
