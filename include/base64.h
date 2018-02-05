@@ -51,5 +51,6 @@ typedef int bool;
 #endif
 
 extern int base64_encode(byte input[], int len, byte output[], int flags);
+extern int base64_decode(byte input[], int len, byte output[], int flags);
 
 #endif

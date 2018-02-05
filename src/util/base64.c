@@ -26,7 +26,6 @@ static const byte ENCODE_WEBSAFE[] = {
     'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-', '_',
 };
 
-#define ENCODE_SIZE (sizeof (ENCODE))
 /**
  * Emit a new line every this many output tuples.  Corresponds to
  * a 76-character line length (the maximum allowable according to
@@ -34,8 +33,6 @@ static const byte ENCODE_WEBSAFE[] = {
  */
 #define LINE_GROUPS 19
 
-byte tail[1024];
-int tail_len = 0;
 bool do_padding, do_newline, do_cr;
 
 void do_encode(byte input[], int len, byte output[], int flags)
@@ -44,6 +41,8 @@ void do_encode(byte input[], int len, byte output[], int flags)
 	int op = 0;
 	int p = 0;
 	int v = -1;
+	byte tail[1024] = { 0 };
+	int tail_len = 0;
 	const byte *alphabet = ((flags & BASE64_URL_SAFE) == 0) ? &ENCODE[0] : &ENCODE_WEBSAFE[0];
 
 	// The main loop, turning 3 input bytes into 4 output bytes on
@@ -107,7 +106,7 @@ void do_encode(byte input[], int len, byte output[], int flags)
 }
 
 /**
- * Base64-encode the given data and return the encode data len
+ * base64-encode the given data and return the encode data len
  * @param input  the data to encode
  * @param flags  controls certain features of the encoded output.
  *               Passing {@code DEFAULT} results in output that
@@ -147,21 +146,235 @@ int base64_encode(byte input[], int len, byte output[], int flags)
 
 
 
-// http://www.atool.org/base64.php
+/**
+ * Lookup table for turning bytes into their position in the
+ * Base64 alphabet.
+ */
+static const int DECODE[] = {
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, -1, -1, 63,
+    52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -2, -1, -1,
+    -1,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, -1,
+    -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+    41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+};
 
+/**
+ * Decode lookup table for the "web safe" variant (RFC 3548
+ * sec. 4) where - and _ replace + and /.
+ */
+static const int DECODE_WEBSAFE[] = {
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, -1,
+    52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -2, -1, -1,
+    -1,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, 63,
+    -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+    41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+};
 
+static int do_decode(byte input[], int len, byte output[], int flags)
+{
+	int op = 0, p = 0;
+	/**
+	 * States 0-3 are reading through the next input tuple.
+	 * State 4 is having read one '=' and expecting exactly
+	 * one more.
+	 * State 5 is expecting no more data or padding characters
+	 * in the input.
+	 * State 6 is the error state; an error has been detected
+	 * in the input and no future input can "fix" it.
+	 */
+	int state = 0;   // state number (0 to 6)
+	int value = 0;
+	/** Non-data values in the DECODE arrays. */
+	const int SKIP = -1;
+	const int EQUALS = -2;
+	const int *alphabet = ((flags & BASE64_URL_SAFE) == 0) ? &DECODE[0] : &DECODE_WEBSAFE[0];
 
+	while (p < len) {
+        // Try the fast path:  we're starting a new tuple and the
+        // next four bytes of the input stream are all data
+        // bytes.  This corresponds to going through states
+        // 0-1-2-3-0.  We expect to use this method for most of
+        // the data.
+        //
+        // If any of the next four bytes of input are non-data
+        // (whitespace, etc.), value will end up negative.  (All
+        // the non-data values in decode are small negative
+        // numbers, so shifting any of them up and or'ing them
+        // together will result in a value with its top bit set.)
+        //
+        // You can remove this whole block and the output should
+        // be the same, just slower.
+        if (state == 0) {
+            while (p+4 <= len &&
+                   (value = ((alphabet[input[p] & 0xff] << 18) |
+                             (alphabet[input[p+1] & 0xff] << 12) |
+                             (alphabet[input[p+2] & 0xff] << 6) |
+                             (alphabet[input[p+3] & 0xff]))) >= 0) {
+                output[op+2] = (byte) value;
+                output[op+1] = (byte) (value >> 8);
+                output[op] = (byte) (value >> 16);
+                op += 3;
+                p += 4;
+            }
+            if (p >= len) break;
+        }
 
+        // The fast path isn't available -- either we've read a
+        // partial tuple, or the next four input bytes aren't all
+        // data, or whatever.  Fall back to the slower state
+        // machine implementation.
+        int d = alphabet[input[p++] & 0xff];
+        switch (state) {
+        case 0:
+            if (d >= 0) {
+                value = d;
+                ++state;
+            } else if (d != SKIP) {
+                state = 6;
+                return false;
+            }
+            break;
 
+        case 1:
+            if (d >= 0) {
+                value = (value << 6) | d;
+                ++state;
+            } else if (d != SKIP) {
+                state = 6;
+                return false;
+            }
+            break;
 
+        case 2:
+            if (d >= 0) {
+                value = (value << 6) | d;
+                ++state;
+            } else if (d == EQUALS) {
+                // Emit the last (partial) output tuple;
+                // expect exactly one more padding character.
+                output[op++] = (byte) (value >> 4);
+                state = 4;
+            } else if (d != SKIP) {
+                state = 6;
+                return false;
+            }
+            break;
 
+        case 3:
+            if (d >= 0) {
+                // Emit the output triple and return to state 0.
+                value = (value << 6) | d;
+                output[op+2] = (byte) value;
+                output[op+1] = (byte) (value >> 8);
+                output[op] = (byte) (value >> 16);
+                op += 3;
+                state = 0;
+            } else if (d == EQUALS) {
+                // Emit the last (partial) output tuple;
+                // expect no further data or padding characters.
+                output[op+1] = (byte) (value >> 2);
+                output[op] = (byte) (value >> 10);
+                op += 2;
+                state = 5;
+            } else if (d != SKIP) {
+                state = 6;
+                return false;
+            }
+            break;
 
+        case 4:
+            if (d == EQUALS) {
+                ++state;
+            } else if (d != SKIP) {
+                state = 6;
+                return false;
+            }
+            break;
 
+        case 5:
+            if (d != SKIP) {
+                state = 6;
+                return false;
+            }
+            break;
+        }
+    }
 
+	// Done reading input.  Now figure out where we are left in
+    // the state machine and finish up.
 
+    switch (state) {
+    case 0:
+        // Output length is a multiple of three.  Fine.
+        break;
+    case 1:
+        // Read one extra input byte, which isn't enough to
+        // make another output byte.  Illegal.
+        state = 6;
+        return false;
+    case 2:
+        // Read two extra input bytes, enough to emit 1 more
+        // output byte.  Fine.
+        output[op++] = (byte) (value >> 4);
+        break;
+    case 3:
+        // Read three extra input bytes, enough to emit 2 more
+        // output bytes.  Fine.
+        output[op++] = (byte) (value >> 10);
+        output[op++] = (byte) (value >> 2);
+        break;
+    case 4:
+        // Read one padding '=' when we expected 2.  Illegal.
+        state = 6;
+        return false;
+    case 5:
+        // Read all the padding '='s we expected and no more.
+        // Fine.
+        break;
+    }
 
+	return len;
+}
 
-
-
-
+/**
+ * Decode the Base64-encoded data in input and return the data in
+ * a new byte array.
+ *
+ * <p>The padding '=' characters at the end are considered optional, but
+ * if any are present, there must be the correct number of them.
+ *
+ * @param input  the data to decode
+ * @param len    the number of bytes of input to decode
+ * @param flags  controls certain features of the decoded output.
+ *               Pass {@code DEFAULT} to decode standard Base64.
+ *
+ * @throws IllegalArgumentException if the input contains
+ * incorrect padding
+ */
+int base64_decode(byte input[], int len, byte output[], int flags)
+{
+	return do_decode(input, len, output, flags);
+}
 

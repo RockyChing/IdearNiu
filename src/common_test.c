@@ -57,17 +57,29 @@ static void aes_test()
 	printf("\n");
 }
 
+/**
+ * Test refor:
+ * http://www.atool.org/base64.php
+ */
 static void base64_test()
 {
-	const char *data = "Emit this is don't instantiate, 20171123_idearniu";
-	byte buf[2048] = { 0 };
-	int out_len = base64_encode((byte *) data, strlen(data), buf, BASE64_DEFAULT);
+	const char *data = "Emit this is don't instantiate, 20171123_idearniu, Bai Nian Gu Du";
+	byte encode[2048] = { 0 };
+	byte decode[2048] = { 0 };
+	int out_len = base64_encode((byte *) data, strlen(data), encode, BASE64_DEFAULT);
 
 	int i;
 	for (i = 0; i < out_len; i ++) {
-		printf("%c", buf[i]);
+		printf("%c", encode[i]);
 	}
-	printf("\n\n");
+	printf("\n\n", out_len);
+
+
+	out_len = base64_decode(encode, out_len, decode, BASE64_DEFAULT);
+	for (i = 0; i < out_len; i ++) {
+		printf("%c", decode[i]);
+	}
+	printf("\n\n", out_len);
 }
 
 void common_test()
