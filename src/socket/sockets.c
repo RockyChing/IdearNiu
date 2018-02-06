@@ -71,10 +71,11 @@ static int sock_set_no_linger(SOCKET sockfd)
 int sock_set_blocking(SOCKET sockfd, const int block)
 {
 	int res;
-	
+	int flags;
+
 	sys_debug(3, "Setting fd %d to %s", sockfd,
 		 (block == SOCKET_BLOCK) ? "blocking" : "nonblocking");
-	
+
 	if (!sock_valid(sockfd)) {
 		sys_debug(1,
 			 "ERROR: sock_set_blocking() called with invalid socket");
@@ -85,9 +86,20 @@ int sock_set_blocking(SOCKET sockfd, const int block)
 		return SOCKET_ERROR;
 	}
 
-	res = fcntl(sockfd, F_SETFL, (block == SOCKET_BLOCK) ? 0 : O_NONBLOCK);
+	flags = fcntl(sockfd, F_GETFL, 0);
+	if (flags < 0) {
+		sys_debug(1, "WARNING: F_GETFL on socket %d failed", sockfd);
+		return -1;
+	}
+
+	if (block == SOCKET_BLOCK)
+		flags &= ~O_NONBLOCK;
+	else
+		flags |= O_NONBLOCK;
+
+	res = fcntl(sockfd, F_SETFL, flags);
 	if (res == -1) {
-		sys_debug(1, "WARNING: sock_set_blocking() on socket %d failed", sockfd);
+		sys_debug(1, "WARNING: F_SETFL on socket %d failed", sockfd);
 		return -1;
 	}
 
