@@ -12,7 +12,7 @@
 #include <sys/time.h>
 #include <netdb.h>
 #include <sys/ioctl.h>
-#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <net/if.h>
 
 #include <sockets.h>
@@ -20,6 +20,7 @@
 #include <utils.h>
 
 #define TEST_DNS_NAME "live.smart.jd.com"
+
 
 #if 0
 struct hostent {
@@ -88,7 +89,7 @@ int socket_common_test(int argc, char *argv[])
 {
 	func_enter();
 	test_getip_byhostname(argc, argv);
-
+	check_socket_options();
 
 	func_exit();
 	return 0;
