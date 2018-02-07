@@ -345,7 +345,15 @@ SOCKET sock_get_server_socket(int type, const int port)
 			sys_debug(1, "ERROR: setsockopt() failed to set SO_REUSEADDR flag. (mostly harmless)");
 		}
 	}
-
+#if 1
+	if (type == SOCK_DGRAM) {
+		int broadcast = 1;
+		if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST,
+				(const void *) &broadcast, sizeof (broadcast)) != 0) {
+			sys_debug(1, "ERROR: setsockopt() failed to set SO_BROADCAST flag.");
+		}
+	}
+#endif
 	/*
 	 * setup sockaddr structure 
 	 */
@@ -626,6 +634,7 @@ void init_network()
 	 * used to close the file.
 	 */
 	//sethostent(1);
+	if (server_info.initialed) return;
 	server_info.myhostname = NULL;
 	server_info.server_name = NULL;
 	server_info.version = NULL;
@@ -637,6 +646,7 @@ void init_network()
 	server_info.udp_port = 8800;
 	server_info.udp_listen_sock = -1;
 	server_info.udp_running = SERVER_INITIALIZING;
+	server_info.initialed = 1;
 }
 
 void deinit_network()
@@ -650,6 +660,6 @@ void deinit_network()
 	} else {
 	}
 
-	init_network();
+	server_info.initialed = 0;
 }
 

@@ -16,10 +16,10 @@
 #define TEST_JSON 0
 #define TEST_UART 0
 #define TEST_FB   0
-#define TEST_SOCKET     1
+#define TEST_SOCKET     0
 #define TEST_TCP_SERVER 0
 #define TEST_TCP_CLIENT 0
-#define TEST_UDP_SERVER 0
+#define TEST_UDP_SERVER 1
 #define TEST_UDP_CLIENT 0
 #define TEST_TCP_SEPOLL 0
 #define TEST_GET_EVENT  0
@@ -89,6 +89,7 @@ int main(int argc, char *argv[])
 #elif TEST_TCP_CLIENT == 1
 	socket_tcp_client_test_entry();
 #elif TEST_UDP_SERVER == 1
+	init_network();
 	socket_udp_server_test_entry();
 #elif TEST_GET_EVENT == 1
 	return getevent_test_entry(argc, argv);

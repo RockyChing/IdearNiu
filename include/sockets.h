@@ -68,6 +68,7 @@ typedef struct {
 
 	//pthread_t main_thread;
 	//pthread_mutex_t thread_mutex;
+	int initialed;
 } server_info_t;
 
 typedef struct {
