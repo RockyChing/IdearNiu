@@ -28,6 +28,8 @@ char *get_ctime(const time_t *t);
 void xsplit(struct token *tok, const char *sentence, int sep);
 void *xmalloc(int size);
 void *xrealloc(void *ptr, int size);
+void *zmalloc(int size);
+void *zrealloc(void *ptr, int size);
 
 #endif
 

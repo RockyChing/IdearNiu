@@ -345,7 +345,7 @@ SOCKET sock_get_server_socket(int type, const int port)
 			sys_debug(1, "ERROR: setsockopt() failed to set SO_REUSEADDR flag. (mostly harmless)");
 		}
 	}
-#if 1
+#if 0
 	if (type == SOCK_DGRAM) {
 		int broadcast = 1;
 		if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST,

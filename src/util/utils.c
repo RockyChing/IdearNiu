@@ -27,6 +27,20 @@ static void panic(char *str, ...)
 	exit(4);
 }
 
+/*
+ * Print an error message
+ */
+static void warn(char *str, ...)
+{
+	char buf[BUFSIZE] = {'\0'};
+	va_list ap;
+
+	va_start(ap, str);
+	vsnprintf(buf, BUFSIZE, str, ap);
+	fprintf(stderr, "warn: %s\n", buf);
+	va_end (ap);
+}
+
 int is_recoverable (int error)
 {
 	if ((error == EAGAIN) || (error == EINPROGRESS))
@@ -110,13 +124,29 @@ void xsplit(struct token *tok, const char *sentence, int sep)
  */
 void *xmalloc(int size)
 {
-	void *ret;
+	void *mem;
 	if (!size)
 		size ++;
-	ret = malloc(size);
-	if (ret == (void *)0)
+	mem = malloc(size);
+	if (mem == (void *)0)
 		panic("Couldn't allocate memory!");
-	return ret;
+	return mem;
+}
+
+/*
+ * malloc and zero mem, panic on failing
+ */
+void *zmalloc(int size)
+{
+	void *mem;
+	if (!size)
+		size ++;
+	mem = malloc(size);
+	if (mem == (void *)0)
+		panic("Couldn't allocate memory!");
+	else
+		memset(mem, 0, size);
+	return mem;
 }
 
 /*
@@ -124,13 +154,29 @@ void *xmalloc(int size)
  */
 void *xrealloc(void *ptr, int size)
 {
-	void *ret;
+	void *mem;
 
-	ret = realloc(ptr, size);
-	if(ret == (void *)0)
+	mem = realloc(ptr, size);
+	if(mem == (void *)0)
 		panic("Couldn't re-allocate memory!");
-	return ret;
+	return mem;
 }
+
+/*
+ * realloc and zero mem, panic on failing
+ */
+void *zrealloc(void *ptr, int size)
+{
+	void *mem;
+
+	mem = realloc(ptr, size);
+	if(mem == (void *)0)
+		panic("Couldn't re-allocate memory!");
+	else
+		memset(mem, 0, size);
+	return mem;
+}
+
 
 /**
  * Print a hexdump from given address and length with indicated number of columns
