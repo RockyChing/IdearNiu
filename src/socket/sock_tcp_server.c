@@ -263,7 +263,7 @@ static void *socket_tcp_server_thread(void *arg)
 
 		if (con) {
 			pthread_t ptid;
-			/* handle the new connection it in a new thread */
+			/* one-thread-per-client: handle the new connection it in a new thread */
 			thread_create(&ptid, handle_connection, (void *) con);
 		}
 	}

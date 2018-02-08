@@ -254,7 +254,7 @@ static void disp_bmp(int x, int y, const char *path)
 	int sx, sy, location;
 
 	const int bytes_per_pixel = pixel_width;
-	const int screensize = screen_size;
+	// const int screensize = screen_size;
 	char *map_mem = fbmem;
 	const int start_location = x * bytes_per_pixel + y * line_width;
 
@@ -300,6 +300,6 @@ void fbtest_entry()
 	disp_bmp(1000, 600, BMP_PATH);
 
 	deinit();
-	return 0;
+	//return 0;
 }
 
