@@ -166,7 +166,7 @@ static int uart_init(int fd, int baudrate,
 int uart_open(const char *uart_name)
 {
 	if (!uart_name)
-		uart_name = DEFAULT_UART_SPEED;
+		uart_name = DEFAULT_UART_NAME;
 
 	int fd = open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
 	assert_return(fd > 0);
