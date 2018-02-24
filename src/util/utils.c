@@ -41,6 +41,13 @@ static void warn(char *str, ...)
 	va_end (ap);
 }
 
+void swap(long *pa, long *pb)
+{
+	*pa = *pa ^ *pb;
+	*pb = *pa ^ *pb;
+	*pa = *pa ^ *pb;
+}
+
 int is_recoverable (int error)
 {
 	if ((error == EAGAIN) || (error == EINPROGRESS))

@@ -13,9 +13,9 @@ struct driver_ops {
 };
 
 struct driver {
-	int fd;
-	const char *driver_name;
-	struct driver_ops *ops;
+	int fd; /* index of driver array */
+	const char *driver_name; /* name of the driver */
+	struct driver_ops *ops; /* interface to the driver */
 };
 
 

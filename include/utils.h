@@ -12,11 +12,13 @@
 
 #define TOK_MAX_SZ	(32)
 #define TOK_MAX_CNT (32)
+
 struct token {
 	char str[TOK_MAX_CNT][TOK_MAX_SZ];
-	int str_cnt;
+	int  str_cnt;
 };
 
+void swap(long *pa, long *pb);
 int is_recoverable (int error);
 size_t xstrlen(const char *str);
 int xstrcmp(const char *s1, const char *s2);

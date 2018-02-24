@@ -72,23 +72,29 @@ static void base64_test()
 	for (i = 0; i < out_len; i ++) {
 		printf("%c", encode[i]);
 	}
-	printf("\n\n", out_len);
+	printf("\n\n");
 
 
 	out_len = base64_decode(encode, out_len, decode, BASE64_DEFAULT);
 	for (i = 0; i < out_len; i ++) {
 		printf("%c", decode[i]);
 	}
-	printf("\n\n", out_len);
+	printf("\n\n");
 }
 
 void common_test()
 {
 	func_enter();
+	int i;
+	char buf[5] = { '0', '1', '2', '3', '4'};
+	for (i = 0; i < 5; ++i) {
+		printf("%c", buf[i]);
+	}
+
 	// result: 'sizeof: 2 bytes'
-	sys_debug(0, "sizeof: %d bytes\n", sizeof(struct _framectrl_80211));
+	//sys_debug(0, "sizeof: %d bytes\n", sizeof(struct _framectrl_80211));
 	//aes_test();
-	base64_test();
+	//base64_test();
 
 	func_exit();
 }

@@ -19,7 +19,7 @@
 #define TEST_SOCKET     0
 #define TEST_TCP_SERVER 0
 #define TEST_TCP_CLIENT 0
-#define TEST_UDP_SERVER 1
+#define TEST_UDP_SERVER 0
 #define TEST_UDP_CLIENT 0
 #define TEST_TCP_SEPOLL 0
 #define TEST_GET_EVENT  0
@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 {
 	setup_signal_handler();
 
-	//common_test();
+	common_test();
 #if TEST_ASSERT == 1
 	/* trigger a fault */
 	assert_param(argc == 0);
