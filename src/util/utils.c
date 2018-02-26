@@ -48,9 +48,14 @@ void swap(long *pa, long *pb)
 	*pa = *pa ^ *pb;
 }
 
+/**
+ * if a process caught a signal while the
+ * process was blocked in a ‘‘slow’’ system call, the system call was interrupted. The
+ * system call returned an error and errno was set to EINTR.
+ */
 int is_recoverable (int error)
 {
-	if ((error == EAGAIN) || (error == EINPROGRESS))
+	if ((error == EAGAIN) || (error == EINTR) || (error == EINPROGRESS))
 		return 1;
 
 	return 0;
