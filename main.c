@@ -28,6 +28,7 @@
 #define TEST_THREAD_LIMITS 0
 #define TEST_TINYALSA 0
 #define TEST_SQLITE 0
+#define TEST_IFREQ 1
 
 
 
@@ -49,6 +50,7 @@ extern void driver_model_test_entry();
 extern void alsa_test_entry();
 extern void thread_limits_test_entry();
 extern void sqlite_test_entry();
+extern void ifreq_test_entry();
 
 extern int  socket_common_test(int argc, char *argv[]);
 extern int getevent_test_entry(int argc, char *argv[]);
@@ -58,7 +60,7 @@ int main(int argc, char *argv[])
 {
 	setup_signal_handler();
 
-	common_test();
+	// common_test();
 #if TEST_ASSERT == 1
 	/* trigger a fault */
 	assert_param(argc == 0);
@@ -104,6 +106,8 @@ int main(int argc, char *argv[])
 	return tinyalsa_test_entry(argc, argv);
 #elif TEST_SQLITE == 1
 	sqlite_test_entry();
+#elif TEST_IFREQ == 1
+	ifreq_test_entry();
 #endif
 	/* only the superuser can create a raw socket */
 	//ping("8.8.8.8");
