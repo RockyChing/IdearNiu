@@ -1,5 +1,6 @@
 #ifndef _UTILITY_ES_H
 #define _UTILITY_ES_H
+#include <stdlib.h>
 #include <sys/types.h>
 #include <time.h>
 
@@ -12,6 +13,13 @@
 
 #define TOK_MAX_SZ	(32)
 #define TOK_MAX_CNT (32)
+
+/**
+ * If @ptr is NULL, no operation is performed.
+ */
+#define xfree(ptr) do { free(ptr); \
+		ptr = NULL; \
+	} while (0)
 
 struct token {
 	char str[TOK_MAX_CNT][TOK_MAX_SZ];

@@ -2,6 +2,25 @@
 #define _BASE_64_H
 
 /**
+ * BASE64_ANDROID = 1, from base64.java in Android
+ */
+#define BASE64_ANDROID 0
+#if !BASE64_ANDROID
+/*
+ * Base64 encoding/decoding (RFC1341)
+ * Copyright (c) 2005, Jouni Malinen <j@w1.fi>
+ *
+ * This software may be distributed under the terms of the BSD license.
+ * See README for more details.
+ */
+
+unsigned char * base64_encode(const unsigned char *src, size_t len,
+			      size_t *out_len);
+unsigned char * base64_decode(const unsigned char *src, size_t len,
+			      size_t *out_len);
+
+#else
+/**
  * Default values for encoder/decoder flags.
  */
 #define BASE64_DEFAULT 0
@@ -52,5 +71,5 @@ typedef int bool;
 
 extern int base64_encode(byte input[], int len, byte output[], int flags);
 extern int base64_decode(byte input[], int len, byte output[], int flags);
-
+#endif
 #endif

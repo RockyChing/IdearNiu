@@ -85,11 +85,17 @@ static void test_getip_byhostname(int argc, char *argv[])
 	sys_debug(0, "***test_getip_byhostname exit***");
 }
 
+static test_raw_socket()
+{
+
+}
+
 int socket_common_test(int argc, char *argv[])
 {
 	func_enter();
-	test_getip_byhostname(argc, argv);
-	check_socket_options();
+	//test_getip_byhostname(argc, argv);
+	//check_socket_options();
+	test_raw_socket();
 
 	func_exit();
 	return 0;

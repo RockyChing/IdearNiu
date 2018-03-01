@@ -57,31 +57,6 @@ static void aes_test()
 	printf("\n");
 }
 
-/**
- * Test refor:
- * http://www.atool.org/base64.php
- */
-static void base64_test()
-{
-	const char *data = "Emit this is don't instantiate, 20171123_idearniu, Bai Nian Gu Du";
-	byte encode[2048] = { 0 };
-	byte decode[2048] = { 0 };
-	int out_len = base64_encode((byte *) data, strlen(data), encode, BASE64_DEFAULT);
-
-	int i;
-	for (i = 0; i < out_len; i ++) {
-		printf("%c", encode[i]);
-	}
-	printf("\n\n");
-
-
-	out_len = base64_decode(encode, out_len, decode, BASE64_DEFAULT);
-	for (i = 0; i < out_len; i ++) {
-		printf("%c", decode[i]);
-	}
-	printf("\n\n");
-}
-
 void common_test()
 {
 	func_enter();
@@ -94,7 +69,6 @@ void common_test()
 	// result: 'sizeof: 2 bytes'
 	//sys_debug(0, "sizeof: %d bytes\n", sizeof(struct _framectrl_80211));
 	//aes_test();
-	//base64_test();
 
 	func_exit();
 }
