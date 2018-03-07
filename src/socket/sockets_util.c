@@ -60,8 +60,11 @@ char *get_netdev_ip(const char *ifname)
 
 /**
  * @ipstr_out Max 4 IPs support
+ * Return how many ips are in @ipstr_out array
+ *
+ * nslookup domain-name
  */
-void getip_byhostname(const char *hostname, char ipstr_out[4][16])
+int getip_byhostname(const char *hostname, char ipstr_out[4][16])
 {
 	struct hostent *ht = NULL;
 	int i;
@@ -69,11 +72,14 @@ void getip_byhostname(const char *hostname, char ipstr_out[4][16])
 	ht = gethostbyname(hostname);
 	assert_return(ht);
 	if (ht->h_addr_list && *ht->h_addr_list) {
-		for (i = 0; i < 4 && (*ht->h_addr_list != NULL); ht->h_addr_list ++, i ++) {
+		for (i = 0; i < 4; ht->h_addr_list ++, i ++) {
 			char *ipstr = *ht->h_addr_list;
+			if (!ipstr) break;
 			snprintf(ipstr_out[i], 16, "%d.%d.%d.%d",
 				(uint8_t)ipstr[0], (uint8_t)ipstr[1], (uint8_t)ipstr[2], (uint8_t)ipstr[3]);
 		}
 	}
+
+	return i;
 }
 

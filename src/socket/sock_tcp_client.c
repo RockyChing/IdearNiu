@@ -73,8 +73,8 @@ static void *socket_tcp_client_thread(void *arg)
 
 	while (client->running == CLIENT_RUNNING) {
 		bzero(&tv, sizeof(tv));
-		FD_ZERO(&rfds);				
-		FD_SET(client->sock,&rfds);
+		FD_ZERO(&rfds);
+		FD_SET(client->sock, &rfds);
 
 		tv.tv_sec = 2;
 		tv.tv_usec = 3000;

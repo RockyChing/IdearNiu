@@ -29,7 +29,8 @@
 #define TEST_TINYALSA 0
 #define TEST_SQLITE 0
 #define TEST_NET_IFREQ 0
-#define TEST_BASE64 1
+#define TEST_BASE64 0
+#define TEST_HTTP_CLIENT 1
 
 
 
@@ -52,6 +53,7 @@ extern void alsa_test_entry();
 extern void thread_limits_test_entry();
 extern void sqlite_test_entry();
 extern void ifreq_test_entry();
+extern void httpc_test_entry();
 
 extern int socket_common_test(int argc, char *argv[]);
 extern int getevent_test_entry(int argc, char *argv[]);
@@ -112,6 +114,8 @@ int main(int argc, char *argv[])
 	ifreq_test_entry();
 #elif TEST_BASE64 == 1
 	return base64_test_entry();
+#elif TEST_HTTP_CLIENT == 1
+	httpc_test_entry();
 #endif
 	/* only the superuser can create a raw socket */
 	//ping("8.8.8.8");

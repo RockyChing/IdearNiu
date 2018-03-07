@@ -108,7 +108,7 @@ char *get_netdev_ip(const char *ifname);
 void setup_tcp_listeners();
 connection_t *create_connection();
 void clean_connection(connection_t *con);
-void getip_byhostname(const char *hostname, char ipstr_out[4][16]);
+int getip_byhostname(const char *hostname, char ipstr_out[4][16]);
 
 
 
