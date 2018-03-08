@@ -173,7 +173,7 @@ static void *handle_connection(void *arg)
 	return NULL;
 }
 
-static connection_t *get_connection(SOCKET sock)
+static connection_t *get_connection(int sock)
 {
 	int ret = -1;
 	int sockfd = -1;

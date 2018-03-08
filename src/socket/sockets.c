@@ -22,7 +22,7 @@
 #include <log_util.h>
 
 
-int sock_valid(const SOCKET sockfd)
+int sock_valid(const int sockfd)
 {
 	return ((int) (sockfd >= 0));
 }
@@ -32,7 +32,7 @@ int sock_valid(const SOCKET sockfd)
  * this will detech idle connections from blocking
  * forever if the host crashes
  */
-static int sock_set_keepalive(SOCKET sockfd, const int keepalive)
+static int sock_set_keepalive(int sockfd, const int keepalive)
 {
 	int optval = keepalive;
 	int res;
@@ -49,7 +49,7 @@ static int sock_set_keepalive(SOCKET sockfd, const int keepalive)
 }
 
 
-static int sock_set_no_linger(SOCKET sockfd)
+static int sock_set_no_linger(int sockfd)
 {
 	int res = 0;
 #ifdef SO_LINGER
@@ -68,7 +68,7 @@ static int sock_set_no_linger(SOCKET sockfd)
 	return res;
 }
 
-int sock_set_blocking(SOCKET sockfd, const int block)
+int sock_set_blocking(int sockfd, const int block)
 {
 	int res;
 	int flags;
@@ -106,7 +106,7 @@ int sock_set_blocking(SOCKET sockfd, const int block)
 	return res;
 }
 
-static socket_t *sock_create (SOCKET s, int domain, int type, int protocol)
+static socket_t *sock_create (int s, int domain, int type, int protocol)
 {
 	socket_t *is = (socket_t *) xmalloc(sizeof (socket_t));
 
@@ -127,9 +127,9 @@ static socket_t *sock_create (SOCKET s, int domain, int type, int protocol)
 /**
  * socket API's wrapper
  */
-SOCKET sock_socket(int domain, int type, int protocol)
+int sock_socket(int domain, int type, int protocol)
 {
-	SOCKET s = socket(domain, type, protocol);
+	int s = socket(domain, type, protocol);
 
 	sys_debug(4, "DEBUG: sock_socket() creating socket %d", s);
 
@@ -146,15 +146,15 @@ SOCKET sock_socket(int domain, int type, int protocol)
 	return s;
 }
 
-int sock_close(SOCKET sockfd)
+int sock_close(int sockfd)
 {
 	sys_debug(4, "DEBUG: sock_close: Closing socket %d", sockfd);
 	return close(sockfd);
 }
 
-SOCKET sock_accept(SOCKET s, struct sockaddr *addr, socketlen_t *addrlen)
+int sock_accept(int s, struct sockaddr *addr, socketlen_t *addrlen)
 {
-	SOCKET rs = accept(s, addr, addrlen);
+	int rs = accept(s, addr, addrlen);
 
 	sys_debug(4, "DEBUG: sock_accept() created socket %d", s);
 
@@ -179,7 +179,7 @@ SOCKET sock_accept(SOCKET s, struct sockaddr *addr, socketlen_t *addrlen)
  * Potential problems: Any usage of errno is bad in a threaded application.
  */
 int
-sock_write_bytes_or_kick(SOCKET sockfd, connection_t * clicon,
+sock_write_bytes_or_kick(int sockfd, connection_t * clicon,
 			 const char *buff, const int len)
 {
 	int res, err;
@@ -225,7 +225,7 @@ sock_write_bytes_or_kick(SOCKET sockfd, connection_t * clicon,
  * Write len bytes from buf to the socket.
  * Returns the return value from send()
  */
-int sock_write_bytes(SOCKET sockfd, const char *buff, int len)
+int sock_write_bytes(int sockfd, const char *buff, int len)
 {
 	int t;
 
@@ -256,6 +256,67 @@ int sock_write_bytes(SOCKET sockfd, const char *buff, int len)
 	}
 
 	return t;
+}
+
+/**
+ * @timeout in mili-seconed
+ */
+int sock_read_loop(int sockfd, socket_read_callback read_callback, int timeout)
+{
+	fd_set rfds;
+	struct timeval tv;
+	int ret, nr;
+	char buf[BUFSIZE] = {0};
+
+	while (1) {
+		if (sockfd == INVALID_SOCKET) {
+			sleep(1);
+			continue;
+		}
+
+		bzero(&tv, sizeof(tv));
+		FD_ZERO(&rfds);
+		FD_SET(sockfd, &rfds);
+
+		tv.tv_sec = timeout / 1000;
+		tv.tv_usec = (timeout % 1000) * 1000;
+		ret = select(sockfd + 1, &rfds, NULL, NULL, &tv);
+		if (ret > 0) {
+			if (FD_ISSET(sockfd, &rfds)) {
+				/**
+				 * length of message in bytes that received,
+				 * 0 if no messages are available and peer has done an orderly shutdown,
+				 * or −1 on error
+				 */
+				memset(buf, 0, sizeof(buf));
+				nr = recv(sockfd, buf, BUFSIZE, 0);
+				if (nr > 0) {
+					if (read_callback)
+						(*read_callback)(buf, nr);
+				} else if (0 == nr) {
+					sys_debug(1, "peer has done an orderly shutdown");
+					break;
+				} else {
+					/* recv() error */
+					if (is_recoverable(errno)) {
+						sys_debug(1, "recv() got %s", strerror(errno));
+					} else {
+						sys_debug(1, "recv() errno, %s", strerror(errno));
+						break;
+					}
+				}
+			}
+		} else if (ret == 0) {
+			/* time expires, send data */
+			sys_debug(1, "no data in %d mili-seconds", timeout);
+		} else {
+			/* error occurs*/
+			sys_debug(1, "ERROR: select() complains: %s", strerror(errno));
+			break;
+		}
+	}
+
+	return -1;
 }
 
 /*
@@ -310,11 +371,11 @@ int sock_sendto(int sockfd, const void *buff, size_t len, int flags,
  * Bind it to INADDR_ANY (all available interfaces).
  * Return the socket for bound socket, or INVALID_SOCKET if failed.
  */
-SOCKET sock_get_server_socket(int type, const int port)
+int sock_get_server_socket(int type, const int port)
 {
 	struct sockaddr_in sin;
 	int sin_len, error;
-	SOCKET sockfd;
+	int sockfd;
 
 	if (port <= 0) {
 		sys_debug(1, "ERROR: Invalid port number %d. Cannot listen for requests, this is bad!",
@@ -384,10 +445,10 @@ SOCKET sock_get_server_socket(int type, const int port)
  * @port server listen port with
  * @timeout in miliseconds and return the created socket.
  */
-SOCKET sock_connect(const char *srvip, const int port,
+int sock_connect(const char *srvip, const int port,
 			const int timeout)
 {
-	SOCKET sockfd = INVALID_SOCKET;
+	int sockfd = INVALID_SOCKET;
 	struct sockaddr_in server;
 	const socklen_t sinlen = sizeof(struct sockaddr_in);
 
@@ -525,7 +586,7 @@ int sock_tcp_get_hostmac(int fd,char *buf,int buf_len,const char *prefix)
 char *sock_get_local_ipaddress()
 {
 #if 0
-	SOCKET sockfd;
+	int sockfd;
 	mysocklen_t sinlen = sizeof (struct sockaddr_in);
 	struct sockaddr_in sin, cliaddr;
 

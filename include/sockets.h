@@ -39,11 +39,10 @@ typedef enum {
 } socktype_t;
 #endif
 
-typedef int SOCKET;
 typedef socklen_t socketlen_t;
 
 typedef struct {
-	SOCKET sock;
+	int sock;
 	int domain;
 	int type;
 	int protocol;
@@ -60,11 +59,11 @@ typedef struct {
 
 	int tcp_port;
 	int tcp_running;
-	SOCKET tcp_listen_sock;	/* Socket to listen to */
+	int tcp_listen_sock;	/* Socket to listen to */
 
 	int udp_port;
 	int udp_running;
-	SOCKET udp_listen_sock;	/* Socket to listen to */
+	int udp_listen_sock;	/* Socket to listen to */
 
 	//pthread_t main_thread;
 	//pthread_mutex_t thread_mutex;
@@ -82,22 +81,26 @@ typedef struct {
 
 	struct sockaddr_in *sin;
 	socklen_t sinlen;
-	SOCKET sock;
+	int sock;
 	pid_t pid;
 	int port;
 	volatile int running;
 } connection_t;
 
-int sock_valid(const SOCKET sockfd);
-int sock_set_blocking(SOCKET sockfd, const int block);
-SOCKET sock_socket(int domain, int type, int protocol);
-int sock_close(SOCKET sockfd);
-SOCKET sock_accept(SOCKET s, struct sockaddr *addr, socketlen_t *addrlen);
-int sock_write_bytes(SOCKET sockfd, const char *buff, int len);
+typedef void (*socket_read_callback)(void *buf, size_t len);
+
+int sock_valid(const int sockfd);
+int sock_set_blocking(int sockfd, const int block);
+int sock_socket(int domain, int type, int protocol);
+int sock_close(int sockfd);
+int sock_accept(int s, struct sockaddr *addr, socketlen_t *addrlen);
+int sock_write_bytes(int sockfd, const char *buff, int len);
 int sock_sendto(int sockfd, const void *buff, size_t len, int flags,
                    const struct sockaddr *dest_addr, socklen_t addrlen);
-SOCKET sock_get_server_socket(const int type, const int port);
-SOCKET sock_connect(const char *srvip, const int port, const int timeout);
+int sock_read_loop(int sockfd, socket_read_callback read_callback, int timeout);
+
+int sock_get_server_socket(const int type, const int port);
+int sock_connect(const char *srvip, const int port, const int timeout);
 int socket_tcp_get_hostip(int fd,char *buf,int buf_len,const char *prefix);
 int sock_tcp_get_hostmac(int fd,char *buf,int buf_len,const char *prefix);
 char *sock_get_local_ipaddress();

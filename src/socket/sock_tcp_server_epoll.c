@@ -29,7 +29,7 @@ struct epoll_event {
 };
 #endif
 
-static connection_t *get_connection(SOCKET sock)
+static connection_t *get_connection(int sock)
 {
 	int sockfd = -1;
 	connection_t *con = NULL;

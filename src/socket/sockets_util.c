@@ -41,7 +41,7 @@
 char *get_netdev_ip(const char *ifname)
 {
 	char * strIP = NULL;
-	SOCKET sockfd;
+	int sockfd;
 	struct ifreq ifr;
 
 	if (!ifname) return NULL;

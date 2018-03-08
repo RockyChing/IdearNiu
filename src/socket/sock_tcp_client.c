@@ -17,7 +17,7 @@ extern void clean_connection(connection_t *con);
 
 static connection_t *create_tcp_client()
 {
-	SOCKET sockfd;
+	int sockfd;
 	connection_t *con = create_connection();
 	char *strIP = get_netdev_ip("ens33");
 

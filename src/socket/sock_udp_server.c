@@ -24,7 +24,7 @@ static void setup_udp_listeners()
 	return;
 }
 
-static void handle_udp_connection(SOCKET sock)
+static void handle_udp_connection(int sock)
 {
 	int ret;
 	socklen_t sin_len;

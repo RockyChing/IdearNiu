@@ -16,7 +16,7 @@
 
 static void http_header(char *str, const char *host, const char *path, const char *content)
 {
-	const size_t content_length = strlen(content);
+	const int content_length = strlen(content);
 
 	/**
 	 * 1. request: 
@@ -37,7 +37,7 @@ static void http_header(char *str, const char *host, const char *path, const cha
 static void *http_send_thread(void *arg)
 {
 	char buf[BUFSIZE];
-	SOCKET sockfd = *((SOCKET *)arg);
+	int sockfd = *((int *)arg);
 	const char *host = "api.avatardata.cn";
 	const char *path = "/Weather/Query";
 	const char *content = "key=4c70c85f8405453d96d162b47bc29a97&cityname=无锡&dtype=JSON&format=true";
@@ -57,84 +57,34 @@ static void *http_send_thread(void *arg)
 	return NULL;
 }
 
-static void *http_recv_thread(void *arg)
+static void htt_reader(void *buf, size_t len)
 {
-	fd_set rfds;
-	struct timeval tv;
-	int ret, nr;
-	char buf[BUFSIZE] = {0};
-	SOCKET sockfd = *((SOCKET *)arg);
-	while (1) {
-		if (sockfd == INVALID_SOCKET) {
-			sleep(1);
-			continue;
-		}
-
-		bzero(&tv, sizeof(tv));
-		FD_ZERO(&rfds);
-		FD_SET(sockfd, &rfds);
-
-		tv.tv_sec = 2;
-		tv.tv_usec = 3000;
-		ret = select(sockfd + 1, &rfds, NULL, NULL, &tv);
-		if (ret > 0) {
-			if (FD_ISSET(sockfd, &rfds)) {
-				/**
-				 * length of message in bytes that received,
-				 * 0 if no messages are available and peer has done an orderly shutdown,
-				 * or −1 on error
-				 */
-				memset(buf, 0, sizeof(buf));
-				nr = recv(sockfd, buf, BUFSIZE, 0);
-				if (nr > 0) {
-	                printf("\n%s\n\n", buf);
-				} else if (0 == nr) {
-					sys_debug(1, "peer has done an orderly shutdown");
-					assert_return(0);
-				} else {
-					/* recv() error */
-					if (EAGAIN == errno) {
-						sys_debug(1, "recv() got EAGAIN");
-					} else {
-						sys_debug(1, "recv() errno, %s", strerror(errno));
-						assert_return(0);
-					}
-				}
-			}
-		} else if (ret == 0) {
-			/* time expires, send data */
-		} else {
-			/* error occurs*/
-			sys_debug(1, "ERROR: select() complains: %s", strerror(errno));
-			assert_return(0);
-		}
-	}
-
-	return NULL;
+	if (len > 0)
+		printf("\n%s\n\n", (char *)buf);
 }
 
 static void http()
 {
 	int i, ret;
-	SOCKET sockfd;
+	int sockfd;
 
 	char ipstr[4][16] = { { 0 }, };
 	ret = getip_byhostname("api.avatardata.cn", ipstr);
 	for (i = 0; i < ret; i ++)
-		sys_debug(1, "DEBUG: got ip '%s'", ipstr[i]);
+		sys_debug(1, "got ip '%s'", ipstr[i]);
 
 	if ((sockfd = sock_connect(ipstr[0], 80, 9000)) == INVALID_SOCKET) {
 		sys_debug(1, "ERROR: create sockfd");
 		assert_return(0);
 	}
 
-	pthread_t s_thread, r_thread;
+	pthread_t s_thread;
 	printf("start http client thread...\n");
 
 	ret = thread_create(&s_thread, http_send_thread, &sockfd);
 	assert_return(ret == 0);
-	ret = thread_create(&r_thread, http_recv_thread, &sockfd);
-	assert_return(ret == 0);
+
+	sock_read_loop(sockfd, htt_reader, 10000);
 }
 
 void httpc_test_entry()

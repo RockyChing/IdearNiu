@@ -47,7 +47,7 @@ struct ifreq {
 };
 #endif
 
-static SOCKET ifreq_socket = -1;
+static int ifreq_socket = -1;
 
 static void ifreq_panic(int flag)
 {
