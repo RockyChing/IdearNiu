@@ -378,8 +378,16 @@ int run_command(const char *cmd, cmd_callback cmd_cb)
 	while (cmd_cb != NULL &&
 		(fgets(buf, sizeof(buf) - 1, fp) != NULL)) {
 		(*cmd_cb) (buf, strlen(buf));
+		memset(buf, 0, sizeof(buf));
 	}
 
-	return (pclose(fp) != -1) ? 0 : -1;
+	int ret = -1;
+	if (pclose(fp) != -1) {
+		ret = 0;
+	} else {
+		warn("pclose() error: %s", strerror(errno));
+		ret = -1;
+	}
+	return ret;
 }
 
