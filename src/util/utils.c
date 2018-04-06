@@ -357,3 +357,29 @@ int from_hex_string(const char *hexstr, void *out, size_t size)
     return buf - buf_start;
 }
 
+int run_command(const char *cmd, cmd_callback cmd_cb)
+{
+	if (!cmd) {
+		warn("run_command() null parameter");
+		return -1;
+	}
+
+	/**
+	 * FILE *popen(const char *command, const char *type);
+	 * int pclose(FILE *stream);
+	 */
+	FILE *fp = popen(cmd, "r");
+	if (fp == NULL) {
+		warn("popen() null return");
+		return -1;
+	}
+
+	char buf[BUFSIZE] = { 0 };
+	while (cmd_cb != NULL &&
+		(fgets(buf, sizeof(buf) - 1, fp) != NULL)) {
+		(*cmd_cb) (buf, strlen(buf));
+	}
+
+	return (pclose(fp) != -1) ? 0 : -1;
+}
+

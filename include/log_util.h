@@ -3,6 +3,10 @@
 #include <stdio.h>
 
 #define BUFSIZE 1500
+#define LOG_ERROR (0)
+#define LOG_WARN  (1)
+#define LOG_INFO  (2)
+#define LOG_DEBUG (3)
 
 #define func_enter() printf("%s enter.\n", __FUNCTION__)
 #define func_exit()  printf("%s exit.\n", __FUNCTION__)
@@ -30,6 +34,11 @@ void assert_fail(const char *, const char*, unsigned int, const char *);
     } while (0)
 
 extern void sys_debug (int level, char *fmt, ...);
+
+#define error(x,...) sys_debug(LOG_ERROR, x)
+//#define warn(x,...)  sys_debug(LOG_WARN, x)
+#define info(x,...)  sys_debug(LOG_INFO, x)
+#define debug(x,...) sys_debug(LOG_DEBUG, x)
 
 
 #endif

@@ -14,6 +14,8 @@
 #define TOK_MAX_SZ	(32)
 #define TOK_MAX_CNT (32)
 
+typedef void (*cmd_callback) (char *buff, size_t len);
+
 /**
  * If @ptr is NULL, no operation is performed.
  */
@@ -40,6 +42,8 @@ void *xmalloc(int size);
 void *xrealloc(void *ptr, int size);
 void *zmalloc(int size);
 void *zrealloc(void *ptr, int size);
+
+int run_command(const char *cmd, cmd_callback cmd_cb);
 
 #endif
 
