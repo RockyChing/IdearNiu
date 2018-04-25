@@ -24,13 +24,13 @@ int dm_open(const char *name)
 	return -1;
 }
 
-int dm_read(int fd, const char *buf, int count)
+int dm_read(int fd, char *buf, int count)
 {
 	int ret;
 	if (fd < 0 || fd >= MAX_DRIVER || !buf || count <=0)
 		return -1;
 	if (drivers[fd].ops && drivers[fd].ops->read)
-		ret = drivers[fd].ops->read(buf, count);
+		ret = drivers[fd].ops->read((void *)buf, count);
 	else
 		ret =  -1;
 	return ret;

@@ -260,7 +260,7 @@ static void disp_bmp(int x, int y, const char *path)
 
 	FILE *file_fd = fopen(path, "r");
 	char buffer[BMP_SIZE];
-	int readCnt = fread(buffer, sizeof(buffer), 1, file_fd);
+	fread(buffer, sizeof(buffer), 1, file_fd);
 	fclose(file_fd);
 
 	for(sx = 0; sx < BMP_WIDTH; sx ++) {

@@ -20,7 +20,7 @@ struct driver {
 
 
 int dm_open(const char *name);
-int dm_read(int fd, const char *buf, int count);
+int dm_read(int fd, char *buf, int count);
 int dm_write(int fd, const char *buf, int count);
 int dm_ioctl(int fd, unsigned int cmd, unsigned long arg);
 

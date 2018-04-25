@@ -196,7 +196,7 @@ void uart_close(int fd)
  * Write len bytes from buf to the socket.
  * Returns the return value from send()
  */
-int uart_write(int fd, const char *buff, int len)
+int uart_write(int fd, const char *buff, size_t len)
 {
 	int t;
 	assert_param(fd > 0);

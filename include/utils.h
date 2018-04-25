@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <time.h>
+#include <type_def.h>
 
 #ifndef min
 #define min(a,b) (((a) < (b)) ? (a) :(b))
@@ -14,7 +15,7 @@
 #define TOK_MAX_SZ	(32)
 #define TOK_MAX_CNT (32)
 
-typedef void (*cmd_callback) (char *buff, size_t len);
+typedef (*cmd_callback) (unsigned char *buff, size_t len);
 
 /**
  * If @ptr is NULL, no operation is performed.
@@ -43,7 +44,9 @@ void *xrealloc(void *ptr, int size);
 void *zmalloc(int size);
 void *zrealloc(void *ptr, int size);
 
-int run_command(const char *cmd, cmd_callback cmd_cb);
+void sleep_us(uint32_t us);
+void sleep_ms(uint32_t us);
+void sleep_s(uint32_t us);
 
 #endif
 

@@ -8,6 +8,9 @@
 #define THREAD_KILLED  -2
 #define THREAD_EXITED  -3
 
+#define THREAD_PERIOD   0
+#define THREAD_ONE_SHOT 1
+
 #if 0
 typedef struct _thread_t {
 	pthread_t thread_id;

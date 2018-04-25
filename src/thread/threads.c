@@ -121,7 +121,152 @@ int thread_create(pthread_t *thread_id, void *(*start_routine)(void *), void *ar
 		}
 	}
 
+#if 0
+	if (type != THREAD_ONE_SHOT) {
+		rwlock_wrlock(&thread_rwlock);
+		if (restart) {
+			thread_objs[index].ptrd_id = *thread_id;
+			thread_objs[index].type = type;
+			thread_objs[index].runner = start_routine;
+			thread_objs[index].arg = arg;
+		} else {
+			if (pthrd_index >= MAX_THREAD_NUMBER) {
+				error("Too many threads have created!");
+				rwlock_unlock(&thread_rwlock);
+				return 1;
+			}
+
+			for (i = 0; i < pthrd_index; i ++) {
+				if (!strcmp(thread_objs[i].name, name)) {
+					// same thread exist;
+					break;
+				}
+			}
+
+			thread_objs[i].state = THREAD_RUNNING;
+			thread_objs[i].ptrd_id = *thread_id;
+			thread_objs[i].type = type;
+			thread_objs[i].runner = start_routine;
+			thread_objs[i].arg = arg;
+			if (i == pthrd_index) {
+				// not register
+				thread_objs[i].name = strdup(name);
+				pthrd_index ++;
+			}
+		}
+
+		rwlock_unlock(&thread_rwlock);
+		debug("'%s' registered!!!!!!!!!!!!!!!!!!!!!!\n\n\n\n\n", thread_objs[i].name);
+	}
+#endif
 	pthread_attr_destroy(&attr); /* Not strictly necessary */
 	return 0;
 }
+
+#if 0
+void thread_pool_init()
+{
+	memset(thread_objs, 0, sizeof(thread_objs));
+	rwlock_init(&thread_rwlock);
+}
+
+void thread_pool_destroy()
+{
+	rwlock_destroy(&thread_rwlock);
+}
+
+int thread_kill(const char *name)
+{
+	int i;
+	debug("pthrd_index: %d", pthrd_index);
+	rwlock_wrlock(&thread_rwlock);
+	for (i = 0; i < pthrd_index; i ++) {
+		if (!strcmp(thread_objs[i].name, name)) {
+			if (thread_objs[i].state == THREAD_RUNNING) {
+				if (pthread_cancel(thread_objs[i].ptrd_id)) {
+					warning("Cancel thread error: %s", strerror(errno));
+				}
+
+				if (pthread_join(thread_objs[i].ptrd_id, NULL)) {
+					warning("Join thread error: %s", strerror(errno));
+				}
+
+				thread_objs[i].state = THREAD_EXITED;
+				info("Kill \"%s\" done!", thread_objs[i].name);
+			}
+		}
+	}
+	rwlock_unlock(&thread_rwlock);
+}
+
+int thread_get_state(const char *name)
+{
+	int i;
+	rwlock_rdlock(&thread_rwlock);
+	for (i = 0; i < pthrd_index; i ++) {
+		if (!strcmp(thread_objs[i].name, name)) {
+			rwlock_unlock(&thread_rwlock);
+			return thread_objs[i].state;
+		}
+	}
+	rwlock_unlock(&thread_rwlock);
+
+	return THREAD_EXITED;
+}
+
+void thread_set_state(const char *name, int state)
+{
+	int i;
+	rwlock_wrlock(&thread_rwlock);
+	for (i = 0; i < pthrd_index; i ++) {
+		if (!strcmp(thread_objs[i].name, name)) {
+			thread_objs[i].state = state;
+		}
+	}
+	rwlock_unlock(&thread_rwlock);
+}
+
+void thread_enable_cancellation()
+{
+	int now, before;
+	now = PTHREAD_CANCEL_ENABLE;
+	/* int pthread_setcancelstate(int state, int *oldstate); */
+	pthread_setcancelstate(now, &before);
+
+	/* int pthread_setcanceltype(int type, int *oldtype); */
+	now = PTHREAD_CANCEL_ASYNCHRONOUS;
+	pthread_setcanceltype(now, &before);
+}
+
+/**
+ * start_daemon_thread - Listen on running threads, if someone exits we'll restart it
+ *
+ * pthread_kill - send a signal to a thread
+ * If sig is 0, then no signal is sent, but error checking is still performed.
+ * On success, pthread_kill() returns 0;
+ * on error, it returns  an  error number, and no signal is sent.
+ */
+void start_daemon_thread()
+{
+	int i;
+	for (; ;) {
+		sleep(50);
+	}
+#if 0
+		if (get_wifi_config_state())
+			continue;
+		debug("totally %d daemon threads are running...", pthrd_index);
+		for (i = 0; i < pthrd_index; i++) {
+			if (pthread_kill(thread_objs[i].ptrd_id, 0) != 0) {
+				/* pthread exits, restart it */
+				if (!thread_create_internal(&thread_objs[i].ptrd_id, thread_objs[i].runner, thread_objs[i].arg,
+							thread_objs[i].type, 1, i)) {
+					warning("thread restart success!");
+				}
+			}
+		}
+	}
+#endif
+}
+#endif
 

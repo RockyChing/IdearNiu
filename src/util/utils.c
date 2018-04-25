@@ -5,6 +5,8 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <ctype.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include <utils.h>
 #include <log_util.h>
@@ -357,6 +359,19 @@ int from_hex_string(const char *hexstr, void *out, size_t size)
     return buf - buf_start;
 }
 
+/**
+ * return true if big endian
+ */
+static int big_endian()
+{
+	union {
+		long l;
+		char c[sizeof(long)];
+	} u;
+
+	u.l = 1;
+	return (u.c[sizeof(long) - 1] == 1);
+}
 int run_command(const char *cmd, cmd_callback cmd_cb)
 {
 	if (!cmd) {
@@ -389,5 +404,112 @@ int run_command(const char *cmd, cmd_callback cmd_cb)
 		ret = -1;
 	}
 	return ret;
+}
+
+int open_for_append(const char *file, const char *buff)
+{
+	int fd = -1;
+	if (!file || !buff) {
+		error("open_for_append(): param is NULL");
+		return -1;
+	}
+
+	fd = open(file, O_WRONLY|O_APPEND|O_CREAT, 00644);
+	if (fd == -1) {
+		error("open_for_append(): Cannot open file for append");
+		return -1;
+	}
+
+	write(fd, buff, strlen(buff));
+	fsync(fd);
+	close(fd);
+	return 0;
+}
+
+int open_for_read(const char *file, void *buff, size_t count)
+{
+	int fd = -1;
+	if (!file || !buff) {
+		error("open_for_read(): param is NULL");
+		return -1;
+	}
+
+	fd = open(file, O_RDONLY, 00644);
+	if (fd == -1) {
+		error("open_for_append(): Cannot open file for append");
+		return -1;
+	}
+
+	read(fd, buff, count);
+	close(fd);
+	return 0;
+}
+
+/**
+ * On success, 0 is return; On error, -1 is return
+ */
+int open_for_write(const char *file, const char *buff, size_t count)
+{
+	int fd = -1;
+	if (!file || !buff) {
+		error("open_for_write(): param is NULL");
+		return -1;
+	}
+
+	fd = open(file, O_WRONLY|O_CREAT|O_TRUNC, 00644);
+	if (fd == -1) {
+		error("open_for_write(): Cannot open file for write");
+		return -1;
+	}
+
+	int t;
+	for(t = 0 ; count > 0 ; ) {
+		int n = write(fd, buff + t, count);
+		if (n < 0) {
+			if (is_recoverable(errno)) {
+				usleep(100 * 1000);
+				continue;
+			}
+			error("open_for_write() error: %s", strerror(errno));
+			close(fd);
+		    return -1;
+		}
+		t += n;
+		count -= n;
+	}
+
+	fsync(fd);
+	close(fd);
+	return 0;
+}
+
+/**
+ * sleep(3) may be implemented using SIGALRM; mixing calls to alarm() and sleep(3) is a bad idea.
+ */
+void sleep_us(uint32_t us)
+{
+	usleep(us);
+}
+
+void sleep_ms(uint32_t ms)
+{
+	struct timeval tv;
+	tv.tv_sec = 0;
+    tv.tv_usec = ms * 1000;
+	int err;
+    do {
+       err = select(0, NULL, NULL, NULL, &tv);
+    } while (err < 0 && errno == EINTR);
+}
+
+void sleep_s(uint32_t s)
+{
+	struct timeval tv;
+	tv.tv_sec = s;
+    tv.tv_usec = 0;
+	int err;
+    do {
+       err = select(0, NULL, NULL, NULL, &tv);
+    } while (err < 0 && errno == EINTR);
 }
 
