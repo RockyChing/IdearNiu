@@ -15,7 +15,7 @@
 #define TOK_MAX_SZ	(32)
 #define TOK_MAX_CNT (32)
 
-typedef (*cmd_callback) (unsigned char *buff, size_t len);
+typedef int (*cmd_callback) (char *buff, size_t len);
 
 /**
  * If @ptr is NULL, no operation is performed.
@@ -35,6 +35,7 @@ size_t xstrlen(const char *str);
 int xstrcmp(const char *s1, const char *s2);
 int xstrncmp (const char *s1, const char *s2, size_t n);
 int xstrcasecmp (const char *s1, const char *s2);
+int run_command(const char *cmd, cmd_callback cmd_cb);
 
 time_t get_time();
 char *get_ctime(const time_t *t);

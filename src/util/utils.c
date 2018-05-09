@@ -372,6 +372,7 @@ static int big_endian()
 	u.l = 1;
 	return (u.c[sizeof(long) - 1] == 1);
 }
+
 int run_command(const char *cmd, cmd_callback cmd_cb)
 {
 	if (!cmd) {

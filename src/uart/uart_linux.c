@@ -203,18 +203,21 @@ int uart_write(int fd, const char *buff, size_t len)
 	assert_param(buff != NULL);
 	assert_param(len > 0);
 
+	//lock(xxx);
 	for(t = 0 ; len > 0 ; ) {
 		int n = write(fd, buff + t, len);
 		if (n < 0) {
 			if (is_recoverable(errno))
 				continue;
 			sys_debug(1, "ERROR: uart write() error: %s", strerror(errno));
+			//unlock(xxx);
 		    return (t == 0) ? n : t;
 		}
 		t += n;
 		len -= n;
 	}
 
+	//unlock(xxx);
 	return t;
 }
 

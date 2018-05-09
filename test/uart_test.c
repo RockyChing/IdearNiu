@@ -59,7 +59,7 @@ static void *uart_read_thread(void *arg)
 					for (i = 0; i < nr; i ++) {
 						printf("%c", buf[i]);
 					}
-					uart_recv_handler((uint8_t *)buf, (uint32_t)nr);
+					// uart_recv_handler((uint8_t *)buf, (uint32_t)nr);
 					memset(buf, 0, BUFSIZE);
 				} else if (0 == nr) {
 					sys_debug(1, "uart read return 0!");

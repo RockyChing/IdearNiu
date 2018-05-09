@@ -10,10 +10,12 @@
 #include <log_util.h>
 #include <utils.h>
 #include <main.h>
+#include <utils.h>
 
-void cmd_cb(char *buff, size_t len)
+int cmd_cb(char *buff, size_t len)
 {
 	printf("%s", buff);
+	return len;
 }
 
 int main(int argc, char *argv[])
