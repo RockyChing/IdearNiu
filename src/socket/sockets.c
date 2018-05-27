@@ -37,11 +37,11 @@ static int sock_set_keepalive(int sockfd, const int keepalive)
 	int optval = keepalive;
 	int res;
 
-	sys_debug(4, "DEBUG: Setting socket %d keepalive to %d", sockfd, keepalive);
+	debug("Setting socket %d keepalive to %d", sockfd, keepalive);
 
 	res = setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, (void *) &optval, sizeof (int));
 	if (res == -1) {
-		sys_debug(1, "WARNING: sock_set_keepalive() failed");
+		warning("sock_set_keepalive() failed");
 		return -1;
 	}
 
@@ -56,11 +56,11 @@ static int sock_set_no_linger(int sockfd)
 	struct linger lin = { 0, 0 };
 	
 
-	sys_debug(4, "DEBUG: Setting socket %d to no linger", sockfd);
+	debug("Setting socket %d to no linger", sockfd);
 
 	res = setsockopt(sockfd, SOL_SOCKET, SO_LINGER, (void *) &lin, sizeof (struct linger));
 	if (res == -1) {
-		sys_debug(1, "WARNING: sock_set_no_linger() failed");
+		warning("sock_set_no_linger() failed");
 		return -1;
 	}
 #endif
@@ -73,22 +73,20 @@ int sock_set_blocking(int sockfd, const int block)
 	int res;
 	int flags;
 
-	sys_debug(3, "Setting fd %d to %s", sockfd,
+	debug("Setting fd %d to %s", sockfd,
 		 (block == SOCKET_BLOCK) ? "blocking" : "nonblocking");
 
 	if (!sock_valid(sockfd)) {
-		sys_debug(1,
-			 "ERROR: sock_set_blocking() called with invalid socket");
+		error("sock_set_blocking() called with invalid socket");
 		return SOCKET_ERROR;
 	} else if ((block < 0) || (block > 1)) {
-		sys_debug(1,
-			 "ERROR: sock_set_blocking() called with invalid block value");
+		error("sock_set_blocking() called with invalid block value");
 		return SOCKET_ERROR;
 	}
 
 	flags = fcntl(sockfd, F_GETFL, 0);
 	if (flags < 0) {
-		sys_debug(1, "WARNING: F_GETFL on socket %d failed", sockfd);
+		warning("F_GETFL on socket %d failed", sockfd);
 		return -1;
 	}
 
@@ -148,15 +146,19 @@ int sock_socket(int domain, int type, int protocol)
 
 int sock_close(int sockfd)
 {
-	sys_debug(4, "DEBUG: sock_close: Closing socket %d", sockfd);
-	return close(sockfd);
+	int ret = close(sockfd);
+	if (ret != 0) {
+		error("socket close error: %s", strerror(errno));
+	}
+
+	return ret;
 }
 
 int sock_accept(int s, struct sockaddr *addr, socketlen_t *addrlen)
 {
 	int rs = accept(s, addr, addrlen);
 
-	sys_debug(4, "DEBUG: sock_accept() created socket %d", s);
+	debug("sock_accept() created socket %d", s);
 
 	if (sock_valid(rs)) {
 		/*
@@ -230,16 +232,13 @@ int sock_write_bytes(int sockfd, const char *buff, int len)
 	int t;
 
 	if (!buff) {
-		sys_debug(1,
-			 "ERROR: sock_write_bytes() called with NULL data");
+		error("sock_write_bytes() called with NULL data");
 		return -1;
 	} else if (len <= 0) {
-		sys_debug(1,
-			 "ERROR: sock_write_bytes() called with zero or negative len");
+		error("sock_write_bytes() called with zero or negative len");
 		return -1;
 	} else if (!sock_valid(sockfd)) {
-		sys_debug(1,
-			 "ERROR: sock_write_bytes() called with invalid socket");
+		error("sock_write_bytes() called with invalid socket");
 		return -1;
 	}
 
@@ -248,8 +247,8 @@ int sock_write_bytes(int sockfd, const char *buff, int len)
 		if (n < 0) {
 			if (is_recoverable(errno))
 				continue;
-			sys_debug(1, "ERROR: socket send() error: %s", strerror(errno));
-		    return (t == 0) ? n : t;
+			error("socket send() error: %s", strerror(errno));
+		    return -1;
 		}
 		t += n;
 		len -= n;
@@ -268,55 +267,51 @@ int sock_read_loop(int sockfd, socket_read_callback read_callback, int timeout)
 	int ret, nr;
 	char buf[BUFSIZE] = {0};
 
-	while (1) {
-		if (sockfd == INVALID_SOCKET) {
-			sleep(1);
-			continue;
-		}
+	bzero(&tv, sizeof(tv));
+	FD_ZERO(&rfds);
+	FD_SET(sockfd, &rfds);
 
-		bzero(&tv, sizeof(tv));
-		FD_ZERO(&rfds);
-		FD_SET(sockfd, &rfds);
-
-		tv.tv_sec = timeout / 1000;
-		tv.tv_usec = (timeout % 1000) * 1000;
-		ret = select(sockfd + 1, &rfds, NULL, NULL, &tv);
-		if (ret > 0) {
-			if (FD_ISSET(sockfd, &rfds)) {
+	tv.tv_sec = timeout / 1000;
+	tv.tv_usec = (timeout % 1000) * 1000;
+	ret = select(sockfd + 1, &rfds, NULL, NULL, &tv);
+	if (ret > 0) {
+		if (FD_ISSET(sockfd, &rfds)) {
+			/**
+			 * length of message in bytes that received,
+			 * 0 if no messages are available and peer has done an orderly shutdown,
+			 * or −1 on error
+			 */
+			memset(buf, 0, sizeof(buf));
+			nr = recv(sockfd, buf, BUFSIZE, 0);
+			if (nr > 0) {
+				if (read_callback)
+					(*read_callback)(buf, nr);
+			} else if (0 == nr) {
 				/**
-				 * length of message in bytes that received,
-				 * 0 if no messages are available and peer has done an orderly shutdown,
-				 * or −1 on error
-				 */
-				memset(buf, 0, sizeof(buf));
-				nr = recv(sockfd, buf, BUFSIZE, 0);
-				if (nr > 0) {
-					if (read_callback)
-						(*read_callback)(buf, nr);
-				} else if (0 == nr) {
-					sys_debug(1, "peer has done an orderly shutdown");
-					break;
+				 * The return value will be 0 when the peer has performed an
+       			 * orderly shutdown.
+       			 */
+				debug("peer has done an orderly shutdown");
+				return -1;
+			} else {
+				/* recv() error */
+				if (is_recoverable(errno)) {
+					warning("recv() got %s", strerror(errno));
 				} else {
-					/* recv() error */
-					if (is_recoverable(errno)) {
-						sys_debug(1, "recv() got %s", strerror(errno));
-					} else {
-						sys_debug(1, "recv() errno, %s", strerror(errno));
-						break;
-					}
+					error("recv() errno, %s", strerror(errno));
+					return -1;
 				}
 			}
-		} else if (ret == 0) {
-			/* time expires, send data */
-			sys_debug(1, "no data in %d mili-seconds", timeout);
-		} else {
-			/* error occurs*/
-			sys_debug(1, "ERROR: select() complains: %s", strerror(errno));
-			break;
 		}
+	} else if (ret == 0) {
+		/* time expires, send data */
+		// debug("no data in %d mili-seconds", timeout);
+	} else {
+		/* error occurs*/
+		error("select() complains: %s", strerror(errno));
 	}
 
-	return -1;
+	return 0;
 }
 
 /*
@@ -330,24 +325,19 @@ int sock_sendto(int sockfd, const void *buff, size_t len, int flags,
 	int t;
 
 	if (!buff) {
-		sys_debug(1,
-			 "ERROR: sock_write_bytes() called with NULL data");
+		error("sock_write_bytes() called with NULL data");
 		return -1;
 	} else if (len <= 0) {
-		sys_debug(1,
-			 "ERROR: sock_write_bytes() called with zero or negative len");
+		error("sock_write_bytes() called with zero or negative len");
 		return -1;
 	} else if (!sock_valid(sockfd)) {
-		sys_debug(1,
-			 "ERROR: sock_write_bytes() called with invalid socket");
+		error("sock_write_bytes() called with invalid socket");
 		return -1;
 	} else if (!dest_addr) {
-		sys_debug(1,
-			 "ERROR: sock_write_bytes() called with invalid dest_addr");
+		error("sock_write_bytes() called with invalid dest_addr");
 		return -1;
 	} else if (addrlen != sizeof(struct sockaddr)) {
-		sys_debug(1,
-			 "ERROR: sock_write_bytes() called with invalid socklen_t");
+		error("sock_write_bytes() called with invalid socklen_t");
 		return -1;
 	}
 
@@ -356,7 +346,7 @@ int sock_sendto(int sockfd, const void *buff, size_t len, int flags,
 		if (n < 0) {
 			if (is_recoverable(errno))
 				continue;
-			sys_debug(1, "ERROR: socket send() error: %s", strerror(errno));
+			error("socket send() error: %s", strerror(errno));
 		    return (t == 0) ? n : t;
 		}
 		t += n;
@@ -378,12 +368,12 @@ int sock_get_server_socket(int type, const int port)
 	int sockfd;
 
 	if (port <= 0) {
-		sys_debug(1, "ERROR: Invalid port number %d. Cannot listen for requests, this is bad!",
+		error("Invalid port number %d. Cannot listen for requests, this is bad!",
 			  port);
 		return INVALID_SOCKET;
 	}
 
-	sys_debug (2, "DEBUG: Getting socket for port %d", port);
+	debug("Getting socket for port %d", port);
 	/*
 	 * get socket descriptor 
 	 */
@@ -403,7 +393,7 @@ int sock_get_server_socket(int type, const int port)
 		int val = 1;
 		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR,
 				(const void *) &val, sizeof (val)) != 0) {
-			sys_debug(1, "ERROR: setsockopt() failed to set SO_REUSEADDR flag. (mostly harmless)");
+			error("setsockopt() failed to set SO_REUSEADDR flag. (mostly harmless)");
 		}
 	}
 #if 0
@@ -430,8 +420,7 @@ int sock_get_server_socket(int type, const int port)
 	 */
 	error = bind(sockfd, (struct sockaddr *) &sin, sin_len);
 	if (error == SOCKET_ERROR) {
-		sys_debug(1,
-			  "Bind to socket on port %d failed. Shutting down now.", port);
+		error("Bind to socket on port %d failed. Shutting down now.", port);
 		sock_close(sockfd);
 		return INVALID_SOCKET;
 	}
@@ -443,7 +432,7 @@ int sock_get_server_socket(int type, const int port)
  * Connect to a server on 
  * @srvip Specific the server IP and specified port
  * @port server listen port with
- * @timeout in miliseconds and return the created socket.
+ * @timeout in miliseconds for connect() method
  */
 int sock_connect(const char *srvip, const int port,
 			const int timeout)
@@ -453,14 +442,13 @@ int sock_connect(const char *srvip, const int port,
 	const socklen_t sinlen = sizeof(struct sockaddr_in);
 
 	int ret;
-	struct timeval timeo;
 
 	do {
 		if (!srvip) {
-			sys_debug(1, "ERROR: sock_connect() called with NULL or empty server ip");
+			error("sock_connect() called with NULL or empty server ip");
 			break;
 		} else if (port <= 0) {
-			sys_debug(1, "ERROR: sock_connect() called with invalid port number");
+			error("sock_connect() called with invalid port number");
 			break;
 		}
 
@@ -474,32 +462,53 @@ int sock_connect(const char *srvip, const int port,
 		server.sin_port = htons(port);
 		server.sin_addr.s_addr= inet_addr(srvip);
 
-		sys_debug(1, "DEBUG: sock_connect() server: %s", srvip);
-		ret = connect(sockfd, (struct sockaddr *) &server, sizeof(server));
-		if (ret != 0) {
-			sys_debug(1, "ERROR: connect() says: %s", strerror(errno));
-			break;
-		}
-
-		sys_debug(3, "DEBUG: sock_connect(): non blocking connect sucess!");
-		sock_set_blocking(sockfd, SOCKET_NONBLOCK);
-
+		info("connect to: %s", srvip);
 		if (timeout <= 0) {
-			timeo.tv_sec = 10; /* set default timeout 10s */
-			timeo.tv_usec = 0;
-		} else {
-			timeo.tv_sec = timeout / 1000;
-			timeo.tv_usec = (timeout % 1000) * 1000;
-		}
+			ret = connect(sockfd, (struct sockaddr *) &server, sizeof(server));
+			if (ret != 0) {
+				error("#1 connect() failed: %s", strerror(errno));
+				break;
+			}
 
-		/**
-		 * On success, zero is returned for the standard options
-		 * On error, -1 is returned, and errno is set appropriately
-		 */
-		if (-1 == setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeo, sizeof(struct timeval)) ||
-			-1 == setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeo, sizeof(struct timeval))) {
-			sys_debug(1, "ERROR: setsockopt() set SO_TIMEO: %s", strerror(errno));
-			break;
+			sock_set_blocking(sockfd, SOCKET_NONBLOCK);
+		} else {
+			/*
+	         * A timeout was specified. We put the socket into non-blocking
+	         * mode, connect, and then wait for the connection to be
+	         * established, fail, or timeout.
+	         */
+	        sock_set_blocking(sockfd, SOCKET_NONBLOCK);
+
+			ret = connect(sockfd, (struct sockaddr *) &server, sizeof(server));
+			if (ret != 0) {
+				if (errno != EINPROGRESS) {
+	                error("#2 connect() failed: %s", strerror(errno));
+	                break;
+	            }
+
+				/*
+	             * Wait for the connection to be established or a
+	             * timeout occurs. poll/select needs to handle EINTR in
+	             * case lwp sig handler redirects any process signals to
+	             * this thread.
+	             */
+				fd_set wr, ex;
+                struct timeval t;
+
+                t.tv_sec = timeout / 1000;
+                t.tv_usec = (timeout % 1000) * 1000;
+
+                FD_ZERO(&wr);
+                FD_SET(sockfd, &wr);
+                FD_ZERO(&ex);
+                FD_SET(sockfd, &ex);
+
+				ret = select(sockfd+1, 0, &wr, &ex, &t);
+				if (ret <= 0) {
+					error("#3 connect() failed: %s", strerror(errno));
+					break;
+				}
+			}
 		}
 		return sockfd;
 	} while (0);
