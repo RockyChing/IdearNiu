@@ -111,6 +111,17 @@ void file_close(FILE *fp)
 	fclose(fp);
 }
 
+void file_empty(int fd)
+{
+	if (ftruncate(fd, 0) < 0) {
+		error("ftruncate error: %s", strerror(errno));
+	}
+
+	if (lseek(fd, 0, SEEK_SET) < 0) {
+		error("lseek error: %s", strerror(errno));
+	}
+}
+
 #if 0
 void file_test()
 {
