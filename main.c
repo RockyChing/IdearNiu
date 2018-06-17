@@ -4,6 +4,7 @@
  * 2. otherwise, do the check
  */
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <sockets.h>
@@ -11,6 +12,7 @@
 #include <utils.h>
 #include <main.h>
 #include <utils.h>
+#include <busybox.h>
 
 int cmd_cb(char *buff, size_t len)
 {
@@ -21,10 +23,17 @@ int cmd_cb(char *buff, size_t len)
 int main(int argc, char *argv[])
 {
 	setup_signal_handler();
+#if 0
 	run_command("wpa_cli scan", cmd_cb);
 	//sleep(5);
 	run_command("wpa_cli scan_result", cmd_cb);
 	common_test();
+#endif
+	if (argc == 2) {
+		if (!strcmp(argv[1], "ps")) {
+			ps_main();
+		}
+	}
 #if TEST_ASSERT == 1
 	/* trigger a fault */
 	assert_param(argc == 0);
@@ -81,6 +90,7 @@ int main(int argc, char *argv[])
 	//ping("8.8.8.8");
 	while (1) {
 		sleep(5);
+		ps_main();
 	}
 
 #if TEST_TCP_SERVER == 1
