@@ -20,7 +20,7 @@ int cmd_cb(char *buff, size_t len)
 	return len;
 }
 
-int main(int argc, char *argv[])
+int main_main(int argc, char *argv[])
 {
 	setup_signal_handler();
 #if 0

@@ -40,5 +40,7 @@ extern void sys_debug (int level, char *fmt, ...);
 #define warning(x...) sys_debug(LOG_WARNING, x)
 #define error(x...)   sys_debug(LOG_ERROR, x)
 
+#define SLOGV(x...)   sys_debug(LOG_DEBUG, x)
+
 #endif
 
