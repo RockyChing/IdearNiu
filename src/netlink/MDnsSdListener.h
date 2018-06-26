@@ -17,9 +17,10 @@
 #ifndef _MDNSSDLISTENER_H__
 #define _MDNSSDLISTENER_H__
 
+#if 0
 #include <pthread.h>
-#include <sysutils/FrameworkListener.h>
-#include <dns_sd.h>
+#include "FrameworkListener.h"
+//#include <dns_sd.h>
 
 #include "NetdCommand.h"
 
@@ -135,4 +136,5 @@ public:
     };
 };
 
+#endif
 #endif

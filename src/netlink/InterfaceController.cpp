@@ -13,10 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <stdio.h>
 #include <string.h>
 #include <dirent.h>
 #include <errno.h>
 #include <malloc.h>
+#include <fcntl.h>           /* Definition of AT_* constants */
+#include <unistd.h>
 
 #define LOG_TAG "InterfaceController"
 //fatal error: base/file.h: No such file or directory
@@ -27,6 +30,7 @@
 
 #include "InterfaceController.h"
 #include "RouteController.h"
+#include "atomic.h"
 
 //using android::base::StringPrintf;
 //using android::base::WriteStringToFile;
@@ -50,8 +54,10 @@ bool isInterfaceName(const char *name) {
 int writeValueToPath(const char* dirname, const char* subdirname, const char* basename,
         const char* value)
 {
-    std::string path(StringPrintf("%s/%s/%s", dirname, subdirname, basename));
-    return WriteStringToFile(value, path) ? 0 : -1;
+    //std::string path(StringPrintf("%s/%s/%s", dirname, subdirname, basename));
+    //return WriteStringToFile(value, path) ? 0 : -1;
+    printf("writeValueToPath: %s/%s/%s\n", dirname, subdirname, basename);
+	return 0;
 }
 
 void setOnAllInterfaces(const char* dirname, const char* basename, const char* value)
@@ -160,8 +166,9 @@ void InterfaceController::setAcceptRA(const char *value) {
 //             ID to get the table. If it's set to -1000, routes from interface ID 5 will go into
 //             table 1005, etc.
 void InterfaceController::setAcceptRARouteTable(int tableOrOffset) {
-    std::string value(StringPrintf("%d", tableOrOffset));
-    setOnAllInterfaces(ipv6_proc_path, "accept_ra_rt_table", value.c_str());
+    //std::string value(StringPrintf("%d", tableOrOffset));
+    //setOnAllInterfaces(ipv6_proc_path, "accept_ra_rt_table", value.c_str());
+    printf("setAcceptRARouteTable: %d\n", tableOrOffset);
 }
 
 int InterfaceController::setMtu(const char *interface, const char *mtu)
@@ -174,9 +181,10 @@ int InterfaceController::setMtu(const char *interface, const char *mtu)
 }
 
 void InterfaceController::setBaseReachableTimeMs(unsigned int millis) {
-    std::string value(StringPrintf("%u", millis));
-    setOnAllInterfaces(ipv4_neigh_conf_dir, "base_reachable_time_ms", value.c_str());
-    setOnAllInterfaces(ipv6_neigh_conf_dir, "base_reachable_time_ms", value.c_str());
+    //std::string value(StringPrintf("%u", millis));
+    //setOnAllInterfaces(ipv4_neigh_conf_dir, "base_reachable_time_ms", value.c_str());
+    //setOnAllInterfaces(ipv6_neigh_conf_dir, "base_reachable_time_ms", value.c_str());
+    printf("setBaseReachableTimeMs: %d\n", millis);
 }
 
 void InterfaceController::setIPv6OptimisticMode(const char *value) {

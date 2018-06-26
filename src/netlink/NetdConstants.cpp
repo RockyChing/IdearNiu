@@ -26,8 +26,8 @@
 
 #define LOG_TAG "Netd"
 
-#include <cutils/log.h>
-#include <logwrap/logwrap.h>
+#include "log.h"
+#include "atomic.h"
 
 #include "NetdConstants.h"
 

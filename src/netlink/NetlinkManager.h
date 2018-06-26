@@ -17,8 +17,8 @@
 #ifndef _NETLINKMANAGER_H
 #define _NETLINKMANAGER_H
 
-#include <sysutils/SocketListener.h>
-#include <sysutils/NetlinkListener.h>
+#include "SocketListener.h"
+#include "NetlinkListener.h"
 
 
 class NetlinkHandler;

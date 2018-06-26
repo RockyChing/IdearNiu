@@ -30,7 +30,11 @@ else
 CC = gcc
 endif
 
-CFLAGS = -I./include -I./include/utils -I./include/system -I./include/netutils -Wall -Wno-unused-function
+CFLAGS = -I./include -I./include/utils -I./include/system -I./include/netutils
+CFLAGS += -Wall -Wno-unused-function
+ifeq ($(SRCTYPE), cpp)
+CFLAGS += -std=c++11
+endif
 LDFLAGS  := -lpthread -lrt
 EXTRA_FLAG := -c -DDEBUG_CHECK_PARAMETERS
 

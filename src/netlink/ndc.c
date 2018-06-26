@@ -28,8 +28,8 @@
 #include <sys/types.h>
 #include <sys/un.h>
 
-#include <cutils/sockets.h>
-#include <private/android_filesystem_config.h>
+//#include <cutils/sockets.h>
+#include "android_filesystem_config.h"
 
 static void usage(char *progname);
 static int do_monitor(int sock, int stop_after_cmd);

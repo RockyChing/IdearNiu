@@ -20,7 +20,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include <utils/threads.h>
-#include <cutils/compiler.h>
+//#include <cutils/compiler.h>
 
 namespace android {
 // ---------------------------------------------------------------------------

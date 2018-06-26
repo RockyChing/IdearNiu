@@ -25,15 +25,14 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <string.h>
-#include <cutils/properties.h>
 
 #define LOG_TAG "NatController"
-#include <cutils/log.h>
-#include <logwrap/logwrap.h>
+#include "log.h"
 
 #include "NatController.h"
 #include "NetdConstants.h"
 #include "RouteController.h"
+#include "atomic.h"
 
 const char* NatController::LOCAL_FORWARD = "natctrl_FORWARD";
 const char* NatController::LOCAL_MANGLE_FORWARD = "natctrl_mangle_FORWARD";

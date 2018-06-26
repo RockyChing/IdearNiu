@@ -17,8 +17,8 @@
 #ifndef _NETLINKHANDLER_H
 #define _NETLINKHANDLER_H
 
-#include <sysutils/NetlinkEvent.h>
-#include <sysutils/NetlinkListener.h>
+#include "NetlinkEvent.h"
+#include "NetlinkListener.h"
 #include "NetlinkManager.h"
 
 class NetlinkHandler: public NetlinkListener {

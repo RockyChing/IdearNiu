@@ -9,9 +9,9 @@
 #include <sys/types.h>
 
 #define LOG_TAG "SocketClient"
-#include <cutils/log.h>
+#include "log.h"
 
-#include <sysutils/SocketClient.h>
+#include "SocketClient.h"
 
 SocketClient::SocketClient(int socket, bool owned) {
     init(socket, owned, false);

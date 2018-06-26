@@ -23,11 +23,11 @@
 #include <sys/un.h>
 
 #define LOG_TAG "SocketListener"
-#include <cutils/log.h>
-#include <cutils/sockets.h>
+#include "log.h"
+#include "sockets.h"
 
-#include <sysutils/SocketListener.h>
-#include <sysutils/SocketClient.h>
+#include "SocketListener.h"
+#include "SocketClient.h"
 
 #define CtrlPipe_Shutdown 0
 #define CtrlPipe_Wakeup   1

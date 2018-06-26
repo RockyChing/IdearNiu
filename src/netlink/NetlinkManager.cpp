@@ -28,7 +28,7 @@
 
 #define LOG_TAG "Netd"
 
-#include <cutils/log.h>
+#include "log.h"
 
 #include <netlink/attr.h>
 #include <netlink/genl/genl.h>

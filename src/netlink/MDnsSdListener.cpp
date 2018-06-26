@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#if 0
 #include <arpa/inet.h>
 #include <dirent.h>
 #include <errno.h>
@@ -31,9 +31,8 @@
 #define DBG 1
 #define VDBG 1
 
-#include <cutils/log.h>
-#include <cutils/properties.h>
-#include <sysutils/SocketClient.h>
+#include "log.h"
+#include "SocketClient.h"
 
 #include "MDnsSdListener.h"
 #include "ResponseCode.h"
@@ -765,3 +764,4 @@ void MDnsSdListener::Monitor::freeServiceRef(int id) {
     }
     pthread_mutex_unlock(&mHeadMutex);
 }
+#endif

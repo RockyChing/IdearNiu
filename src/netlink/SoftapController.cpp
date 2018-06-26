@@ -36,7 +36,7 @@
 #define LOG_TAG "SoftapController"
 #include <base/file.h>
 #include <base/stringprintf.h>
-#include <cutils/log.h>
+#include "log.h"
 #include <netutils/ifc.h>
 #include <private/android_filesystem_config.h>
 #include "wifi.h"
@@ -44,8 +44,8 @@
 
 #include "SoftapController.h"
 
-using android::base::StringPrintf;
-using android::base::WriteStringToFile;
+//using android::base::StringPrintf;
+//using android::base::WriteStringToFile;
 
 static const char HOSTAPD_CONF_FILE[]    = "/data/misc/wifi/hostapd.conf";
 static const char HOSTAPD_BIN_FILE[]    = "/system/bin/hostapd";

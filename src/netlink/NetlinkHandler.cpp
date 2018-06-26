@@ -22,10 +22,10 @@
 
 #define LOG_TAG "Netd"
 
-#include <cutils/log.h>
+#include "log.h"
 
 #include <netutils/ifc.h>
-#include <sysutils/NetlinkEvent.h>
+#include "NetlinkEvent.h"
 #include "NetlinkHandler.h"
 #include "NetlinkManager.h"
 #include "ResponseCode.h"

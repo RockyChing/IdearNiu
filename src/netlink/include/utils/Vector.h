@@ -21,7 +21,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-#include <cutils/log.h>
+#include "log.h"
 
 #include <utils/VectorImpl.h>
 #include <utils/TypeHelpers.h>
