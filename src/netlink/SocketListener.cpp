@@ -21,6 +21,8 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/un.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #define LOG_TAG "SocketListener"
 #include "log.h"

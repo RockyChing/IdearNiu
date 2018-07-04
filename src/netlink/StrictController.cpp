@@ -22,8 +22,7 @@
 #define LOG_TAG "StrictController"
 #define LOG_NDEBUG 0
 
-#include <cutils/log.h>
-
+#include "log.h"
 #include "ConnmarkFlags.h"
 #include "NetdConstants.h"
 #include "StrictController.h"

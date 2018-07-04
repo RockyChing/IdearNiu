@@ -23,9 +23,10 @@
 #include <unistd.h>
 
 #define LOG_TAG "OemIptablesHook"
-#include <cutils/log.h>
-#include <logwrap/logwrap.h>
+#include "log.h"
+//#include <logwrap/logwrap.h>
 #include "NetdConstants.h"
+#include "atomic.h"
 
 static int runIptablesCmd(int argc, const char **argv) {
     int res;

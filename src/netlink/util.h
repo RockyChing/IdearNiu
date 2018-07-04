@@ -12,6 +12,7 @@
 
 int property_get(const char *name, char *value);
 int property_get(const char *key, char *value, const char *default_value);
+int property_set(const char *name, const char *value);
 
 
 #endif

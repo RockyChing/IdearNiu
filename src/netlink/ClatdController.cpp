@@ -26,13 +26,22 @@
 #define LOG_TAG "ClatdController"
 #include "log.h"
 
-#include "resolv_netid.h"
-
 #include "NetdConstants.h"
 #include "ClatdController.h"
 #include "Fwmark.h"
 #include "NetdConstants.h"
 #include "NetworkController.h"
+
+/*
+ * Passing NETID_UNSET as the netId causes system/netd/server/DnsProxyListener.cpp to
+ * fill in the appropriate default netId for the query.
+ */
+#define NETID_UNSET 0u
+
+/*
+ * MARK_UNSET represents the default (i.e. unset) value for a socket mark.
+ */
+#define MARK_UNSET 0u
 
 static const char* kClatdPath = "/system/bin/clatd";
 

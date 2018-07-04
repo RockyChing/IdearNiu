@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -30,7 +31,7 @@
 #include <arpa/inet.h>
 
 #define LOG_TAG "PppController"
-#include <cutils/log.h>
+#include "log.h"
 
 #include "PppController.h"
 

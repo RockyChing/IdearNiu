@@ -17,7 +17,7 @@
 #include "Network.h"
 
 #define LOG_TAG "Netd"
-#include "log/log.h"
+#include "log.h"
 
 Network::~Network() {
     if (!mInterfaces.empty()) {

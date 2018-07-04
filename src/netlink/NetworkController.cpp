@@ -39,18 +39,25 @@
 #include "RouteController.h"
 #include "VirtualNetwork.h"
 
-#include "cutils/misc.h"
+//#include "cutils/misc.h"
 #define LOG_TAG "Netd"
-#include "log/log.h"
-#include "resolv_netid.h"
+#include "log.h"
 
-namespace {
+#define FIRST_APPLICATION_UID 10000
+/*
+ * Passing NETID_UNSET as the netId causes system/netd/server/DnsProxyListener.cpp to
+ * fill in the appropriate default netId for the query.
+ */
+#define NETID_UNSET 0u
+
+/*
+ * MARK_UNSET represents the default (i.e. unset) value for a socket mark.
+ */
+#define MARK_UNSET 0u
 
 // Keep these in sync with ConnectivityService.java.
 const unsigned MIN_NET_ID = 100;
 const unsigned MAX_NET_ID = 65535;
-
-}  // namespace
 
 const unsigned NetworkController::MIN_OEM_ID   =  1;
 const unsigned NetworkController::MAX_OEM_ID   = 50;
@@ -239,6 +246,7 @@ unsigned NetworkController::getNetworkForConnect(uid_t uid) const {
 
 void NetworkController::getNetworkContext(
         unsigned netId, uid_t uid, struct android_net_context* netcontext) const {
+#if 0
     struct android_net_context nc = {
             .app_netid = netId,
             .app_mark = MARK_UNSET,
@@ -259,6 +267,9 @@ void NetworkController::getNetworkContext(
     if (netcontext) {
         *netcontext = nc;
     }
+#else
+	ALOGW("getNetworkContext not impl");
+#endif
 }
 
 unsigned NetworkController::getNetworkForInterface(const char* interface) const {
@@ -357,7 +368,7 @@ int NetworkController::destroyNetwork(unsigned netId) {
     }
     mNetworks.erase(netId);
     delete network;
-    _resolv_delete_cache_for_net(netId);
+    //_resolv_delete_cache_for_net(netId);
     return ret;
 }
 

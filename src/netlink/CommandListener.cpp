@@ -25,7 +25,6 @@
 #include <errno.h>
 #include <string.h>
 #include <linux/if.h>
-#include "resolv_netid.h"
 #include "util.h"
 
 #define __STDC_FORMAT_MACROS 1
@@ -50,7 +49,17 @@
 #include <string>
 #include <vector>
 
-namespace {
+/*
+ * Passing NETID_UNSET as the netId causes system/netd/server/DnsProxyListener.cpp to
+ * fill in the appropriate default netId for the query.
+ */
+#define NETID_UNSET 0u
+
+/*
+ * MARK_UNSET represents the default (i.e. unset) value for a socket mark.
+ */
+#define MARK_UNSET 0u
+
 
 const unsigned NUM_OEM_IDS = NetworkController::MAX_OEM_ID - NetworkController::MIN_OEM_ID + 1;
 
@@ -79,8 +88,6 @@ unsigned stringToNetId(const char* arg) {
     // strtoul() returns 0 on errors, which is fine because 0 is an invalid netId.
     return strtoul(arg, NULL, 0);
 }
-
-}  // namespace
 
 NetworkController *CommandListener::sNetCtrl = NULL;
 TetherController *CommandListener::sTetherCtrl = NULL;

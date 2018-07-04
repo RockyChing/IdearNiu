@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include <sys/socket.h>
 #include <sys/select.h>
@@ -44,7 +45,11 @@
 #include "NetlinkManager.h"
 #include "NetlinkHandler.h"
 
-#include "pcap-netfilter-linux-android.h"
+//#include "pcap-netfilter-linux-android.h"
+static int android_nflog_send_config_cmd(int fd, u_int16_t group_id, u_int8_t cmd,     u_int8_t family)
+{
+	ALOGW("android_nflog_send_config_cmd NOT impled!");
+}
 
 const int NetlinkManager::NFLOG_QUOTA_GROUP = 1;
 const int NetlinkManager::NETFILTER_STRICT_GROUP = 2;

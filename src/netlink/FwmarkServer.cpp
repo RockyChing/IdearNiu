@@ -19,10 +19,20 @@
 #include "Fwmark.h"
 #include "FwmarkCommand.h"
 #include "NetworkController.h"
-#include "resolv_netid.h"
 
 #include <sys/socket.h>
 #include <unistd.h>
+
+/*
+ * Passing NETID_UNSET as the netId causes system/netd/server/DnsProxyListener.cpp to
+ * fill in the appropriate default netId for the query.
+ */
+#define NETID_UNSET 0u
+
+/*
+ * MARK_UNSET represents the default (i.e. unset) value for a socket mark.
+ */
+#define MARK_UNSET 0u
 
 FwmarkServer::FwmarkServer(NetworkController* networkController) :
         SocketListener("fwmarkd", true), mNetworkController(networkController) {

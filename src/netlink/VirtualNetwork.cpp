@@ -19,7 +19,7 @@
 #include "RouteController.h"
 
 #define LOG_TAG "Netd"
-#include "log/log.h"
+#include "log.h"
 
 VirtualNetwork::VirtualNetwork(unsigned netId, bool hasDns, bool secure) :
         Network(netId), mHasDns(hasDns), mSecure(secure) {

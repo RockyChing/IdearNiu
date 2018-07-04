@@ -28,6 +28,8 @@
 
 #include "log.h"
 #include "CommandListener.h"
+#include "NetlinkManager.h"
+#include "FwmarkServer.h"
 
 
 #define LOG_TAG "Netd"
@@ -43,15 +45,12 @@ const mode_t PID_FILE_MODE = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;  // mode 064
 int main()
 {
     CommandListener *cl;
-#if 0
+
     NetlinkManager *nm;
-    DnsProxyListener *dpl;
-    MDnsSdListener *mdnsl;
     FwmarkServer* fwmarkServer;
 
     ALOGI("Netd 1.0 starting");
     remove_pid_file();
-
     blockSigpipe();
 
     if (!(nm = NetlinkManager::Instance())) {
@@ -61,7 +60,6 @@ int main()
 
     cl = new CommandListener();
     nm->setBroadcaster((SocketListener *) cl);
-
     if (nm->start()) {
         ALOGE("Unable to start NetlinkManager (%s)", strerror(errno));
         exit(1);
@@ -70,17 +68,6 @@ int main()
     // Set local DNS mode, to prevent bionic from proxying
     // back to this service, recursively.
     setenv("ANDROID_DNS_MODE", "local", 1);
-    dpl = new DnsProxyListener(CommandListener::sNetCtrl);
-    if (dpl->startListener()) {
-        ALOGE("Unable to start DnsProxyListener (%s)", strerror(errno));
-        exit(1);
-    }
-
-    mdnsl = new MDnsSdListener();
-    if (mdnsl->startListener()) {
-        ALOGE("Unable to start MDnsSdListener (%s)", strerror(errno));
-        exit(1);
-    }
 
     fwmarkServer = new FwmarkServer(CommandListener::sNetCtrl);
     if (fwmarkServer->startListener()) {
@@ -107,7 +94,6 @@ int main()
 
     ALOGI("Netd exiting");
     remove_pid_file();
-#endif
     exit(0);
 }
 

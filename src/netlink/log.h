@@ -17,9 +17,13 @@ void sys_debug(int level, const char *tag, const char *fmt, ...);
 
 #define ALOGD(x...)   sys_debug(LOG_DEBUG, LOG_TAG, x)
 #define ALOGV(x...)   sys_debug(LOG_INFO, LOG_TAG, x)
+#define ALOGI(x...)   sys_debug(LOG_INFO, LOG_TAG, x)
 #define ALOGW(x...)   sys_debug(LOG_WARNING, LOG_TAG, x)
 #define ALOGE(x...)   sys_debug(LOG_ERROR, LOG_TAG, x)
 
+#define SLOGD(x...)   sys_debug(LOG_DEBUG, LOG_TAG, x)
+#define SLOGI(x...)   sys_debug(LOG_INFO, LOG_TAG, x)
+#define SLOGV(x...)   sys_debug(LOG_INFO, LOG_TAG, x)
 #define SLOGW(x...)   sys_debug(LOG_WARNING, LOG_TAG, x)
 #define SLOGE(x...)   sys_debug(LOG_ERROR, LOG_TAG, x)
 

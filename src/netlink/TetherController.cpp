@@ -13,11 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -28,8 +30,8 @@
 #include <arpa/inet.h>
 
 #define LOG_TAG "TetherController"
-#include <cutils/log.h>
-#include <cutils/properties.h>
+#include "log.h"
+#include "util.h"
 
 #include "Fwmark.h"
 #include "NetdConstants.h"

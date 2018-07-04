@@ -30,12 +30,12 @@ else
 CC = gcc
 endif
 
-CFLAGS = -I./include -I./include/utils -I./include/system -I./include/netutils
+CFLAGS = -I./include -I./include/utils -I./include/system -I./include/netutils -I/usr/include/libnl3
 CFLAGS += -Wall -Wno-unused-function
 ifeq ($(SRCTYPE), cpp)
 CFLAGS += -std=c++11
 endif
-LDFLAGS  := -lpthread -lrt
+LDFLAGS  := -lpthread -lrt -lnl-3 -lnl-genl-3 -lnl-nf-3
 EXTRA_FLAG := -c -DDEBUG_CHECK_PARAMETERS
 
 

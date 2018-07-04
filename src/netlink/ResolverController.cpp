@@ -17,14 +17,16 @@
 #define LOG_TAG "ResolverController"
 #define DBG 0
 
-#include <cutils/log.h>
+#include "log.h"
+
+#ifndef NULL
+#define NULL (void *)0
+#endif
 
 #include <net/if.h>
 
-// NOTE: <resolv_netid.h> is a private C library header that provides
 //       declarations for _resolv_set_nameservers_for_net and
 //       _resolv_flush_cache_for_net
-#include <resolv_netid.h>
 
 #include "ResolverController.h"
 
@@ -33,13 +35,21 @@ int ResolverController::setDnsServers(unsigned netId, const char* domains,
     if (DBG) {
         ALOGD("setDnsServers netId = %u\n", netId);
     }
-    _resolv_set_nameservers_for_net(netId, servers, numservers, domains);
-
+#if 0
+	_resolv_set_nameservers_for_net(netId, servers, numservers, domains);
+#else
+	ALOGW("setDnsServers not impl");
+#endif
     return 0;
 }
 
 int ResolverController::clearDnsServers(unsigned netId) {
+#if 0
     _resolv_set_nameservers_for_net(netId, NULL, 0, "");
+#else
+		ALOGW("clearDnsServers not impl");
+#endif
+
     if (DBG) {
         ALOGD("clearDnsServers netId = %u\n", netId);
     }
@@ -50,8 +60,11 @@ int ResolverController::flushDnsCache(unsigned netId) {
     if (DBG) {
         ALOGD("flushDnsCache netId = %u\n", netId);
     }
-
+#if 0
     _resolv_flush_cache_for_net(netId);
+#else
+			ALOGW("flushDnsCache not impl");
+#endif
 
     return 0;
 }

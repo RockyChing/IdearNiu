@@ -16,9 +16,13 @@
 
 #include "UidRanges.h"
 
+#define LOG_TAG "UidRanges"
+
 #include "NetdConstants.h"
+#include "log.h"
 
 #include <stdlib.h>
+#include <algorithm>
 
 bool UidRanges::hasUid(uid_t uid) const {
     auto iter = std::lower_bound(mRanges.begin(), mRanges.end(), Range(uid, uid));
@@ -72,12 +76,14 @@ bool UidRanges::parseFrom(int argc, char* argv[]) {
 }
 
 void UidRanges::add(const UidRanges& other) {
-    auto middle = mRanges.insert(mRanges.end(), other.mRanges.begin(), other.mRanges.end());
-    std::inplace_merge(mRanges.begin(), middle, mRanges.end());
+    //auto middle = mRanges.insert(mRanges.end(), other.mRanges.begin(), other.mRanges.end());
+    //std::inplace_merge(mRanges.begin(), middle, mRanges.end());
+    ALOGW("xxxxxxx add");
 }
 
 void UidRanges::remove(const UidRanges& other) {
-    auto end = std::set_difference(mRanges.begin(), mRanges.end(), other.mRanges.begin(),
-                                   other.mRanges.end(), mRanges.begin());
-    mRanges.erase(end, mRanges.end());
+   // auto end = std::set_difference(mRanges.begin(), mRanges.end(), other.mRanges.begin(),
+   //                                other.mRanges.end(), mRanges.begin());
+   // mRanges.erase(end, mRanges.end());
+   ALOGW("xxxxxxx remove");
 }

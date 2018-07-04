@@ -13,11 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -34,12 +36,12 @@
 #include <openssl/sha.h>
 
 #define LOG_TAG "SoftapController"
-#include <base/file.h>
-#include <base/stringprintf.h>
+//#include <base/file.h>
+//#include <base/stringprintf.h>
 #include "log.h"
 #include <netutils/ifc.h>
-#include <private/android_filesystem_config.h>
-#include "wifi.h"
+#include "android_filesystem_config.h"
+//#include "wifi.h"
 #include "ResponseCode.h"
 
 #include "SoftapController.h"
@@ -57,6 +59,7 @@ SoftapController::~SoftapController() {
 }
 
 int SoftapController::startSoftap() {
+#if 0
     pid_t pid = 1;
 
     if (mPid) {
@@ -87,6 +90,9 @@ int SoftapController::startSoftap() {
         ALOGD("SoftAP started successfully");
         usleep(AP_BSS_START_DELAY);
     }
+#else
+	ALOGW("startSoftap comment by rocky");
+#endif
     return ResponseCode::SoftapStatusResult;
 }
 
@@ -121,6 +127,7 @@ bool SoftapController::isSoftapStarted() {
  *  argv[7] - Key
  */
 int SoftapController::setSoftap(int argc, char *argv[]) {
+#if 0
     int hidden = 0;
     int channel = AP_CHANNEL_DEFAULT;
 
@@ -174,6 +181,9 @@ int SoftapController::setSoftap(int argc, char *argv[]) {
         ALOGE("Cannot write to \"%s\": %s", HOSTAPD_CONF_FILE, strerror(errno));
         return ResponseCode::OperationFailed;
     }
+#else
+	ALOGW("setSoftap comment by rocky");
+#endif
     return ResponseCode::SoftapStatusResult;
 }
 
@@ -184,6 +194,7 @@ int SoftapController::setSoftap(int argc, char *argv[]) {
  */
 int SoftapController::fwReloadSoftap(int argc, char *argv[])
 {
+#if 0
     char *fwpath = NULL;
 
     if (argc < 4) {
@@ -207,10 +218,14 @@ int SoftapController::fwReloadSoftap(int argc, char *argv[])
     else {
         ALOGD("Softap fwReload - Ok");
     }
+#else
+	ALOGW("fwReloadSoftap comment by rocky");
+#endif
     return ResponseCode::SoftapStatusResult;
 }
 
 void SoftapController::generatePsk(char *ssid, char *passphrase, char *psk_str) {
+#if 0
     unsigned char psk[SHA256_DIGEST_LENGTH];
     int j;
     // Use the PKCS#5 PBKDF2 with 4096 iterations
@@ -220,4 +235,7 @@ void SoftapController::generatePsk(char *ssid, char *passphrase, char *psk_str) 
     for (j=0; j < SHA256_DIGEST_LENGTH; j++) {
         sprintf(&psk_str[j*2], "%02x", psk[j]);
     }
+#else
+	ALOGW("generatePsk comment by rocky");
+#endif
 }
