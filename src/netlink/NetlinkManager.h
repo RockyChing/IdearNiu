@@ -30,6 +30,8 @@ private:
 private:
     SocketListener       *mBroadcaster;
     NetlinkHandler       *mUeventHandler;
+	int                  mUeventSock;
+#if 0// by rocky
     NetlinkHandler       *mRouteHandler;
     NetlinkHandler       *mQuotaHandler;
     NetlinkHandler       *mStrictHandler;
@@ -37,7 +39,7 @@ private:
     int                  mRouteSock;
     int                  mQuotaSock;
     int                  mStrictSock;
-
+#endif
 public:
     virtual ~NetlinkManager();
 

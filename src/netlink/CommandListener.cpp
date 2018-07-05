@@ -89,6 +89,7 @@ unsigned stringToNetId(const char* arg) {
     return strtoul(arg, NULL, 0);
 }
 
+#if 0 // by rocky
 NetworkController *CommandListener::sNetCtrl = NULL;
 TetherController *CommandListener::sTetherCtrl = NULL;
 NatController *CommandListener::sNatCtrl = NULL;
@@ -101,6 +102,8 @@ ResolverController *CommandListener::sResolverCtrl = NULL;
 FirewallController *CommandListener::sFirewallCtrl = NULL;
 ClatdController *CommandListener::sClatdCtrl = NULL;
 StrictController *CommandListener::sStrictCtrl = NULL;
+#endif
+SoftapController *CommandListener::sSoftapCtrl = NULL;
 
 /**
  * List of module chains to be created, along with explicit ordering. ORDERING
@@ -179,6 +182,11 @@ static void createChildChains(IptablesTarget target, const char* table, const ch
 
 CommandListener::CommandListener() :
                  FrameworkListener("netd", true) {
+	registerCmd(new SoftapCmd());
+
+	if (!sSoftapCtrl)
+        sSoftapCtrl = new SoftapController();
+#if 0// by rocky
     registerCmd(new InterfaceCmd());
     registerCmd(new IpFwdCmd());
     registerCmd(new TetherCmd());
@@ -193,7 +201,9 @@ CommandListener::CommandListener() :
     registerCmd(new ClatdCmd());
     registerCmd(new NetworkCommand());
     registerCmd(new StrictCmd());
+#endif
 
+#if 0// by rocky
     if (!sNetCtrl)
         sNetCtrl = new NetworkController();
     if (!sTetherCtrl)
@@ -218,7 +228,7 @@ CommandListener::CommandListener() :
         sClatdCtrl = new ClatdController(sNetCtrl);
     if (!sStrictCtrl)
         sStrictCtrl = new StrictController();
-
+#endif
     /*
      * This is the only time we touch top-level chains in iptables; controllers
      * should only mutate rules inside of their children chains, as created by
@@ -228,7 +238,7 @@ CommandListener::CommandListener() :
      * they should instead defer to any remaining modules using RETURN, or
      * otherwise DROP/REJECT.
      */
-
+#if 0// by rocky
     // Create chains for children modules
     createChildChains(V4V6, "filter", "INPUT", FILTER_INPUT);
     createChildChains(V4V6, "filter", "FORWARD", FILTER_FORWARD);
@@ -241,7 +251,8 @@ CommandListener::CommandListener() :
 
     // Let each module setup their child chains
     setupOemIptablesHook();
-
+#endif
+#if 0// by rocky
     /* When enabled, DROPs all packets except those matching rules. */
     sFirewallCtrl->setupIptablesHooks();
 
@@ -263,8 +274,56 @@ CommandListener::CommandListener() :
     if (int ret = RouteController::Init(NetworkController::LOCAL_NET_ID)) {
         ALOGE("failed to initialize RouteController (%s)", strerror(-ret));
     }
+#endif
 }
 
+CommandListener::SoftapCmd::SoftapCmd() :
+                 NetdCommand("softap") {
+}
+
+int CommandListener::SoftapCmd::runCommand(SocketClient *cli,
+                                        int argc, char **argv) {
+    int rc = ResponseCode::SoftapStatusResult;
+    char *retbuf = NULL;
+
+    if (sSoftapCtrl == NULL) {
+      cli->sendMsg(ResponseCode::ServiceStartFailed, "SoftAP is not available", false);
+      return -1;
+    }
+    if (argc < 2) {
+        cli->sendMsg(ResponseCode::CommandSyntaxError,
+                     "Missing argument in a SoftAP command", false);
+        return 0;
+    }
+
+    if (!strcmp(argv[1], "startap")) {
+        rc = sSoftapCtrl->startSoftap();
+    } else if (!strcmp(argv[1], "stopap")) {
+        rc = sSoftapCtrl->stopSoftap();
+    } else if (!strcmp(argv[1], "fwreload")) {
+        rc = sSoftapCtrl->fwReloadSoftap(argc, argv);
+    } else if (!strcmp(argv[1], "status")) {
+        asprintf(&retbuf, "Softap service %s running",
+                 (sSoftapCtrl->isSoftapStarted() ? "is" : "is not"));
+        cli->sendMsg(rc, retbuf, false);
+        free(retbuf);
+        return 0;
+    } else if (!strcmp(argv[1], "set")) {
+        rc = sSoftapCtrl->setSoftap(argc, argv);
+    } else {
+        cli->sendMsg(ResponseCode::CommandSyntaxError, "Unrecognized SoftAP command", false);
+        return 0;
+    }
+
+    if (rc >= 400 && rc < 600)
+      cli->sendMsg(rc, "SoftAP command has failed", false);
+    else
+      cli->sendMsg(rc, "Ok", false);
+
+    return 0;
+}
+
+#if 0// by rocky
 CommandListener::InterfaceCmd::InterfaceCmd() :
                  NetdCommand("interface") {
 }
@@ -769,52 +828,6 @@ int CommandListener::PppdCmd::runCommand(SocketClient *cli,
     } else {
         cli->sendMsg(ResponseCode::OperationFailed, "Pppd operation failed", true);
     }
-
-    return 0;
-}
-
-CommandListener::SoftapCmd::SoftapCmd() :
-                 NetdCommand("softap") {
-}
-
-int CommandListener::SoftapCmd::runCommand(SocketClient *cli,
-                                        int argc, char **argv) {
-    int rc = ResponseCode::SoftapStatusResult;
-    char *retbuf = NULL;
-
-    if (sSoftapCtrl == NULL) {
-      cli->sendMsg(ResponseCode::ServiceStartFailed, "SoftAP is not available", false);
-      return -1;
-    }
-    if (argc < 2) {
-        cli->sendMsg(ResponseCode::CommandSyntaxError,
-                     "Missing argument in a SoftAP command", false);
-        return 0;
-    }
-
-    if (!strcmp(argv[1], "startap")) {
-        rc = sSoftapCtrl->startSoftap();
-    } else if (!strcmp(argv[1], "stopap")) {
-        rc = sSoftapCtrl->stopSoftap();
-    } else if (!strcmp(argv[1], "fwreload")) {
-        rc = sSoftapCtrl->fwReloadSoftap(argc, argv);
-    } else if (!strcmp(argv[1], "status")) {
-        asprintf(&retbuf, "Softap service %s running",
-                 (sSoftapCtrl->isSoftapStarted() ? "is" : "is not"));
-        cli->sendMsg(rc, retbuf, false);
-        free(retbuf);
-        return 0;
-    } else if (!strcmp(argv[1], "set")) {
-        rc = sSoftapCtrl->setSoftap(argc, argv);
-    } else {
-        cli->sendMsg(ResponseCode::CommandSyntaxError, "Unrecognized SoftAP command", false);
-        return 0;
-    }
-
-    if (rc >= 400 && rc < 600)
-      cli->sendMsg(rc, "SoftAP command has failed", false);
-    else
-      cli->sendMsg(rc, "Ok", false);
 
     return 0;
 }
@@ -1815,3 +1828,4 @@ int CommandListener::NetworkCommand::runCommand(SocketClient* client, int argc, 
 
     return syntaxError(client, "Unknown argument");
 }
+#endif

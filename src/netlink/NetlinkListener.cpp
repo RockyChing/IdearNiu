@@ -34,11 +34,13 @@
 NetlinkListener::NetlinkListener(int socket) :
                             SocketListener(socket, false) {
     mFormat = NETLINK_FORMAT_ASCII;
+	ALOGD("NetlinkListener constructor 1");
 }
 #endif
 
 NetlinkListener::NetlinkListener(int socket, int format) :
                             SocketListener(socket, false), mFormat(format) {
+	ALOGD("NetlinkListener constructor 2");
 }
 
 bool NetlinkListener::onDataAvailable(SocketClient *cli)

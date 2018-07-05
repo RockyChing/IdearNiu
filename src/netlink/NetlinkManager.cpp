@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include <sys/socket.h>
 #include <sys/select.h>
@@ -119,14 +120,27 @@ NetlinkHandler *NetlinkManager::setupSocket(int *sock, int netlinkFamily,
         }
     }
 
+#if 1
+	int flags = fcntl(*sock, F_GETFL, 0);
+	flags |= O_NONBLOCK;
+	fcntl(*sock, F_SETFL, flags);
+	while (1) {
+		char buff[512] = { 0 };
+		if (recv(*sock, buff, sizeof(buff), 0) > 0) {
+			ALOGD("read: %s", buff);
+		}
+	}
+
+	return NULL;
+#else
     NetlinkHandler *handler = new NetlinkHandler(this, *sock, format);
     if (handler->start()) {
         ALOGE("Unable to start NetlinkHandler: %s", strerror(errno));
         close(*sock);
         return NULL;
     }
-
-    return handler;
+	return handler;
+#endif
 }
 
 int NetlinkManager::start() {
@@ -134,7 +148,7 @@ int NetlinkManager::start() {
          0xffffffff, NetlinkListener::NETLINK_FORMAT_ASCII, false)) == NULL) {
         return -1;
     }
-
+#if 0 // by rocky
     if ((mRouteHandler = setupSocket(&mRouteSock, NETLINK_ROUTE,
                                      RTMGRP_LINK |
                                      RTMGRP_IPV4_IFADDR |
@@ -156,7 +170,7 @@ int NetlinkManager::start() {
         ALOGE("Unable to open strict socket");
         // TODO: return -1 once the emulator gets a new kernel.
     }
-
+#endif
     return 0;
 }
 
@@ -173,7 +187,7 @@ int NetlinkManager::stop() {
 
     close(mUeventSock);
     mUeventSock = -1;
-
+#if 0 // by rocky
     if (mRouteHandler->stop()) {
         ALOGE("Unable to stop route NetlinkHandler: %s", strerror(errno));
         status = -1;
@@ -210,6 +224,7 @@ int NetlinkManager::stop() {
         close(mStrictSock);
         mStrictSock = -1;
     }
+#endif
 
     return status;
 }

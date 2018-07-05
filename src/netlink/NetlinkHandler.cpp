@@ -20,7 +20,7 @@
 #include <string.h>
 #include <errno.h>
 
-#define LOG_TAG "Netd"
+#define LOG_TAG "NetlinkHandler"
 
 #include "log.h"
 
@@ -36,6 +36,7 @@ static const char *kRemoved = "removed";
 NetlinkHandler::NetlinkHandler(NetlinkManager *nm, int listenerSocket,
                                int format) :
                         NetlinkListener(listenerSocket, format) {
+	ALOGD("NetlinkHandler constructor");
     mNm = nm;
 }
 

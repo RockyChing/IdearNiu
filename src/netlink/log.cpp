@@ -34,7 +34,7 @@ static void log_time(struct log_tm *ltm)
 	ltm->tm_usec = tv.tv_usec;
 }
 
-void sys_debug(int level, const char *tag, const char *fmt, ...)
+void sys_debug(int level, const char *tag, int line_num, const char *fmt, ...)
 {
 	if (level > log_level || level < 0)
 		return;
@@ -51,7 +51,7 @@ void sys_debug(int level, const char *tag, const char *fmt, ...)
 		goto exit;
 	}
 
-	fprintf(stderr, "[NETD_%s_%s %02d:%02d:%02d.%d] %s\n", tag, log_level_string[level],
+	fprintf(stderr, "[%s(%d)_%s %02d:%02d:%02d.%d] %s\n", tag, line_num, log_level_string[level],
 			ltm.tm_hour, ltm.tm_min, ltm.tm_sec, ltm.tm_usec, buf);
 	fflush(stderr);
 exit:

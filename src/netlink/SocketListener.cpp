@@ -53,6 +53,7 @@ void SocketListener::init(const char *socketName, int socketFd, bool listen, boo
     mUseCmdNum = useCmdNum;
     pthread_mutex_init(&mClientsLock, NULL);
     mClients = new SocketClientCollection();
+	ALOGD("SocketListener init socketFd=%d,listen:%d,useCmdNum%d", socketFd, listen, useCmdNum);
 }
 
 SocketListener::~SocketListener() {
@@ -94,8 +95,10 @@ int SocketListener::startListener(int backlog) {
     if (mListen && listen(mSock, backlog) < 0) {
         SLOGE("Unable to listen on socket (%s)", strerror(errno));
         return -1;
-    } else if (!mListen)
+    } else if (!mListen) {
+		ALOGD("create new SocketClient()");
         mClients->push_back(new SocketClient(mSock, false, mUseCmdNum));
+	}
 
     if (pipe(mCtrlPipe)) {
         SLOGE("pipe failed (%s)", strerror(errno));

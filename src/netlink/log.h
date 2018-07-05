@@ -6,26 +6,26 @@
 #define LOG_INFO	 2
 #define LOG_DEBUG    3
 
-#define DEFAULT_LOG_LEVEL LOG_INFO
+#define DEFAULT_LOG_LEVEL LOG_DEBUG
 
-void sys_debug(int level, const char *tag, const char *fmt, ...);
+void sys_debug(int level, const char *tag, int line_num, const char *fmt, ...);
 
-#define debug(x...)   sys_debug(LOG_DEBUG, LOG_TAG, x)
-#define info(x...)    sys_debug(LOG_INFO, LOG_TAG, x)
-#define warning(x...) sys_debug(LOG_WARNING, LOG_TAG, x)
-#define error(x...)   sys_debug(LOG_ERROR, LOG_TAG, x)
+#define debug(x...)   sys_debug(LOG_DEBUG, LOG_TAG, __LINE__, x)
+#define info(x...)    sys_debug(LOG_INFO, LOG_TAG, __LINE__, x)
+#define warning(x...) sys_debug(LOG_WARNING, LOG_TAG, __LINE__, x)
+#define error(x...)   sys_debug(LOG_ERROR, LOG_TAG, __LINE__, x)
 
-#define ALOGD(x...)   sys_debug(LOG_DEBUG, LOG_TAG, x)
-#define ALOGV(x...)   sys_debug(LOG_INFO, LOG_TAG, x)
-#define ALOGI(x...)   sys_debug(LOG_INFO, LOG_TAG, x)
-#define ALOGW(x...)   sys_debug(LOG_WARNING, LOG_TAG, x)
-#define ALOGE(x...)   sys_debug(LOG_ERROR, LOG_TAG, x)
+#define ALOGD(x...)   sys_debug(LOG_DEBUG, LOG_TAG, __LINE__, x)
+#define ALOGV(x...)   sys_debug(LOG_INFO, LOG_TAG, __LINE__, x)
+#define ALOGI(x...)   sys_debug(LOG_INFO, LOG_TAG, __LINE__, x)
+#define ALOGW(x...)   sys_debug(LOG_WARNING, LOG_TAG, __LINE__, x)
+#define ALOGE(x...)   sys_debug(LOG_ERROR, LOG_TAG, __LINE__, x)
 
-#define SLOGD(x...)   sys_debug(LOG_DEBUG, LOG_TAG, x)
-#define SLOGI(x...)   sys_debug(LOG_INFO, LOG_TAG, x)
-#define SLOGV(x...)   sys_debug(LOG_INFO, LOG_TAG, x)
-#define SLOGW(x...)   sys_debug(LOG_WARNING, LOG_TAG, x)
-#define SLOGE(x...)   sys_debug(LOG_ERROR, LOG_TAG, x)
+#define SLOGD(x...)   sys_debug(LOG_DEBUG, LOG_TAG, __LINE__, x)
+#define SLOGI(x...)   sys_debug(LOG_INFO, LOG_TAG, __LINE__, x)
+#define SLOGV(x...)   sys_debug(LOG_INFO, LOG_TAG, __LINE__, x)
+#define SLOGW(x...)   sys_debug(LOG_WARNING, LOG_TAG, __LINE__, x)
+#define SLOGE(x...)   sys_debug(LOG_ERROR, LOG_TAG, __LINE__, x)
 
 
 #endif

@@ -34,6 +34,8 @@
 #include "StrictController.h"
 
 class CommandListener : public FrameworkListener {
+	static SoftapController *sSoftapCtrl;
+#if 0 // by rocky
     static TetherController *sTetherCtrl;
     static NatController *sNatCtrl;
     static PppController *sPppCtrl;
@@ -45,6 +47,7 @@ class CommandListener : public FrameworkListener {
     static FirewallController *sFirewallCtrl;
     static ClatdController *sClatdCtrl;
     static StrictController *sStrictCtrl;
+#endif
 
 public:
     static NetworkController *sNetCtrl;
@@ -60,7 +63,7 @@ private:
         virtual ~SoftapCmd() {}
         int runCommand(SocketClient *c, int argc, char ** argv);
     };
-
+#if 0 // by rocky
     class InterfaceCmd : public NetdCommand {
     public:
         InterfaceCmd();
@@ -167,6 +170,7 @@ private:
         int operationError(SocketClient* cli, const char* message, int ret);
         int success(SocketClient* cli);
     };
+#endif
 };
 
 #endif
