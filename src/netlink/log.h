@@ -8,6 +8,18 @@
 
 #define DEFAULT_LOG_LEVEL LOG_DEBUG
 
+#define hex_dump(buf, len)	\
+	do { \
+		int i; \
+		for(i = 0; i < len; i++) { \
+			if(0 == (i % 16) && 0 != i) \
+				printf("\n"); \
+			char *p = (char*) buf; \
+			printf("%02x ", (p[i]&0xff)); \
+		} \
+		printf("\n"); \
+	} while(0)
+
 void sys_debug(int level, const char *tag, int line_num, const char *fmt, ...);
 
 #define debug(x...)   sys_debug(LOG_DEBUG, LOG_TAG, __LINE__, x)

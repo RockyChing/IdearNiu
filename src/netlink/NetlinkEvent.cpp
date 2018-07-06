@@ -27,6 +27,7 @@
 #include <netinet/icmp6.h>
 #include <arpa/inet.h>
 #include <net/if.h>
+#include <sys/ioctl.h>
 
 #include <linux/if.h>
 #include <linux/if_addr.h>
@@ -124,11 +125,31 @@ static bool maybeLogDuplicateAttribute(bool isDup,
     return false;
 }
 
+#if 0
+// linux/rtnetlink.h
+rtnetlink - Linux IPv4 routing socket
+Rtnetlink allows the kernels routing tables to be read and altered.
+	  It is used within the kernel to communicate between various
+	  subsystems, though this usage is not documented here, and for
+	  communication with user-space programs.  Network routes, IP
+	  addresses, link parameters, neighbor setups, queueing disciplines,
+	  traffic classes and packet classifiers may all be controlled through
+	  NETLINK_ROUTE sockets.  It is based on netlink messages; see
+	  netlink(7) for more information.
+
+struct ifinfomsg {
+	unsigned char	ifi_family;
+	unsigned char	__ifi_pad;
+	unsigned short	ifi_type;		/* ARPHRD_* */
+	int		ifi_index;		/* Link index	*/
+	unsigned	ifi_flags;		/* IFF_* flags	*/
+	unsigned	ifi_change;		/* IFF_* change mask */
+};
+#endif
 /*
  * Parse a RTM_NEWLINK message.
  */
 bool NetlinkEvent::parseIfInfoMessage(const struct nlmsghdr *nh) {
-#if 0
     struct ifinfomsg *ifi = (struct ifinfomsg *) NLMSG_DATA(nh);
     if (!checkRtNetlinkLength(nh, sizeof(*ifi)))
         return false;
@@ -140,18 +161,19 @@ bool NetlinkEvent::parseIfInfoMessage(const struct nlmsghdr *nh) {
     int len = IFLA_PAYLOAD(nh);
     struct rtattr *rta;
     for (rta = IFLA_RTA(ifi); RTA_OK(rta, len); rta = RTA_NEXT(rta, len)) {
-        switch(rta->rta_type) {
+        switch(rta->rta_type) { // IFF_LOWER_UP: 0x10000
             case IFLA_IFNAME:
+				// such as INTERFACE=wlan0
+				ALOGD("INTERFACE=%s", (char *) RTA_DATA(rta));
+				ALOGD("ifi->ifi_flags=%x", ifi->ifi_flags);
                 asprintf(&mParams[0], "INTERFACE=%s", (char *) RTA_DATA(rta));
-                mAction = (ifi->ifi_flags & IFF_LOWER_UP) ? Action::kLinkUp :
+                mAction = (ifi->ifi_flags & 0x10000) ? Action::kLinkUp :
                                                             Action::kLinkDown;
                 mSubsystem = strdup("net");
                 return true;
         }
     }
-#else
-	ALOGW("parseIfInfoMessage not impl");
-#endif
+
     return false;
 }
 
@@ -251,6 +273,10 @@ bool NetlinkEvent::parseIfAddrMessage(const struct nlmsghdr *nh) {
         asprintf(&mParams[7], "TSTAMP=%u", cacheinfo->tstamp);
     }
 
+	ALOGD("parseIfAddrMessage: %s", mParams[0]);
+	ALOGD("parseIfAddrMessage: %s", mParams[1]);
+	ALOGD("parseIfAddrMessage: %s", mParams[2]);
+	ALOGD("parseIfAddrMessage: %s", mParams[3]);
     return true;
 }
 
@@ -308,6 +334,8 @@ bool NetlinkEvent::parseNfPacketMessage(struct nlmsghdr *nh) {
     mParams[1] = hex;
     mSubsystem = strdup("strict");
     mAction = Action::kChange;
+	ALOGD("parseNfPacketMessage: %s", mParams[0]);
+	ALOGD("parseNfPacketMessage: %s", mParams[1]);
     return true;
 }
 
@@ -399,6 +427,9 @@ bool NetlinkEvent::parseRtMessage(const struct nlmsghdr *nh) {
     asprintf(&mParams[0], "ROUTE=%s/%d", dst, prefixLength);
     asprintf(&mParams[1], "GATEWAY=%s", (*gw) ? gw : "");
     asprintf(&mParams[2], "INTERFACE=%s", (*dev) ? dev : "");
+	ALOGD("parseRtMessage: %s", mParams[0]);
+	ALOGD("parseRtMessage: %s", mParams[1]);
+	ALOGD("parseRtMessage: %s", mParams[2]);
 
     return true;
 }
@@ -516,6 +547,36 @@ bool NetlinkEvent::parseNdUserOptMessage(const struct nlmsghdr *nh) {
     return true;
 }
 
+#if 0
+// linux/netlink.h
+struct nlmsghdr {
+	__u32		nlmsg_len;	/* Length of message including header */
+	__u16		nlmsg_type;	/* Message content */
+	__u16		nlmsg_flags;	/* Additional flags */
+	__u32		nlmsg_seq;	/* Sequence number */
+	__u32		nlmsg_pid;	/* Sending process port ID */
+};
+
+#define NLMSG_ALIGNTO	4U
+#define NLMSG_ALIGN(len) ( ((len)+NLMSG_ALIGNTO-1) & ~(NLMSG_ALIGNTO-1) )
+#define NLMSG_HDRLEN	 ((int) NLMSG_ALIGN(sizeof(struct nlmsghdr)))
+#define NLMSG_LENGTH(len) ((len) + NLMSG_HDRLEN)
+#define NLMSG_SPACE(len) NLMSG_ALIGN(NLMSG_LENGTH(len))
+#define NLMSG_DATA(nlh)  ((void*)(((char*)nlh) + NLMSG_LENGTH(0)))
+#define NLMSG_NEXT(nlh,len)	 ((len) -= NLMSG_ALIGN((nlh)->nlmsg_len), \
+								 (struct nlmsghdr*)(((char*)(nlh)) + NLMSG_ALIGN((nlh)->nlmsg_len)))
+#define NLMSG_OK(nlh,len) ((len) >= (int)sizeof(struct nlmsghdr) && \
+							  (nlh)->nlmsg_len >= sizeof(struct nlmsghdr) && \
+							  (nlh)->nlmsg_len <= (len))
+#define NLMSG_PAYLOAD(nlh,len) ((nlh)->nlmsg_len - NLMSG_SPACE((len)))
+
+
+#define NLMSG_NOOP		0x1	/* Nothing.		*/
+#define NLMSG_ERROR		0x2	/* Error		*/
+#define NLMSG_DONE		0x3	/* End of a dump	*/
+#define NLMSG_OVERRUN		0x4	/* Data lost		*/
+
+#endif
 /*
  * Parse a binary message from a NETLINK_ROUTE netlink socket.
  *
@@ -534,34 +595,41 @@ bool NetlinkEvent::parseBinaryNetlinkMessage(char *buffer, int size) {
          NLMSG_OK(nh, (unsigned) size) && (nh->nlmsg_type != NLMSG_DONE);
          nh = NLMSG_NEXT(nh, size)) {
 
+		ALOGD("nlmsg_type: %d", nh->nlmsg_type);
         if (!rtMessageName(nh->nlmsg_type)) {
             SLOGD("Unexpected netlink message type %d\n", nh->nlmsg_type);
             continue;
         }
 
         if (nh->nlmsg_type == RTM_NEWLINK) {
+			ALOGD("Got RTM_NEWLINK");
             if (parseIfInfoMessage(nh))
                 return true;
 
         } else if (nh->nlmsg_type == LOCAL_QLOG_NL_EVENT) {
+        	ALOGD("Got LOCAL_QLOG_NL_EVENT");
             if (parseUlogPacketMessage(nh))
                 return true;
 
         } else if (nh->nlmsg_type == RTM_NEWADDR ||
                    nh->nlmsg_type == RTM_DELADDR) {
+            ALOGD("Got RTM_NEWADDR/RTM_DELADDR");
             if (parseIfAddrMessage(nh))
                 return true;
 
         } else if (nh->nlmsg_type == RTM_NEWROUTE ||
                    nh->nlmsg_type == RTM_DELROUTE) {
+            ALOGD("Got RTM_NEWROUTE/RTM_DELROUTE");
             if (parseRtMessage(nh))
                 return true;
 
         } else if (nh->nlmsg_type == RTM_NEWNDUSEROPT) {
+        	ALOGD("Got RTM_NEWNDUSEROPT");
             if (parseNdUserOptMessage(nh))
                 return true;
 
         } else if (nh->nlmsg_type == LOCAL_NFLOG_PACKET) {
+        	ALOGD("Got LOCAL_NFLOG_PACKET");
             if (parseNfPacketMessage(nh))
                 return true;
 
@@ -642,10 +710,14 @@ bool NetlinkEvent::parseAsciiNetlinkMessage(char *buffer, int size) {
 }
 
 bool NetlinkEvent::decode(char *buffer, int size, int format) {
+	ALOGD("decode, size: %d, format: %d", size, format);
     if (format == NetlinkListener::NETLINK_FORMAT_BINARY
             || format == NetlinkListener::NETLINK_FORMAT_BINARY_UNICAST) {
+        ALOGD("net link msg:");
+		hex_dump(buffer, size);
         return parseBinaryNetlinkMessage(buffer, size);
     } else {
+		ALOGD("net link msg: %s", buffer);
         return parseAsciiNetlinkMessage(buffer, size);
     }
 }

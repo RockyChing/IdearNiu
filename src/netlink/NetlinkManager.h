@@ -29,14 +29,16 @@ private:
 
 private:
     SocketListener       *mBroadcaster;
+
     NetlinkHandler       *mUeventHandler;
 	int                  mUeventSock;
-#if 0// by rocky
+
     NetlinkHandler       *mRouteHandler;
+	int                  mRouteSock;
+#if 0// by rocky
     NetlinkHandler       *mQuotaHandler;
     NetlinkHandler       *mStrictHandler;
     int                  mUeventSock;
-    int                  mRouteSock;
     int                  mQuotaSock;
     int                  mStrictSock;
 #endif

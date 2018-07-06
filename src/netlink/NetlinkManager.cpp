@@ -120,7 +120,7 @@ NetlinkHandler *NetlinkManager::setupSocket(int *sock, int netlinkFamily,
         }
     }
 
-#if 1
+#if 0
 	int flags = fcntl(*sock, F_GETFL, 0);
 	flags |= O_NONBLOCK;
 	fcntl(*sock, F_SETFL, flags);
@@ -144,11 +144,23 @@ NetlinkHandler *NetlinkManager::setupSocket(int *sock, int netlinkFamily,
 }
 
 int NetlinkManager::start() {
+	/**
+	 * NETLINK_KOBJECT_UEVENT
+	 *  add@/devices/platform/jzmmc_v1.2.0/mmc_host/mmc0/mmc0:1234
+		add@/devices/virtual/bdi/179:0
+		add@/devices/platform/jzmmc_v1.2.0/mmc_host/mmc0/mmc0:1234/block/mmcblk0
+		add@/devices/platform/jzmmc_v1.2.0/mmc_host/mmc0/mmc0:1234/block/mmcblk0/mmcblk0p
+		remove@/devices/platform/jzmmc_v1.2.0/mmc_host/mmc0/mmc0:1234/block/mmcblk0/mmcblk0p1
+		remove@/devices/virtual/bdi/179:0
+		remove@/devices/platform/jzmmc_v1.2.0/mmc_host/mmc0/mmc0:1234/block/mmcblk0
+		remove@/devices/platform/jzmmc_v1.2.0/mmc_host/mmc0/mmc0:1234
+	 *
+	 */
     if ((mUeventHandler = setupSocket(&mUeventSock, NETLINK_KOBJECT_UEVENT,
          0xffffffff, NetlinkListener::NETLINK_FORMAT_ASCII, false)) == NULL) {
         return -1;
     }
-#if 0 // by rocky
+
     if ((mRouteHandler = setupSocket(&mRouteSock, NETLINK_ROUTE,
                                      RTMGRP_LINK |
                                      RTMGRP_IPV4_IFADDR |
@@ -158,7 +170,7 @@ int NetlinkManager::start() {
          NetlinkListener::NETLINK_FORMAT_BINARY, false)) == NULL) {
         return -1;
     }
-
+#if 0 // by rocky
     if ((mQuotaHandler = setupSocket(&mQuotaSock, NETLINK_NFLOG,
             NFLOG_QUOTA_GROUP, NetlinkListener::NETLINK_FORMAT_BINARY, false)) == NULL) {
         ALOGE("Unable to open quota socket");

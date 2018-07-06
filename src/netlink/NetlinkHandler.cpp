@@ -52,12 +52,14 @@ int NetlinkHandler::stop() {
 }
 
 void NetlinkHandler::onEvent(NetlinkEvent *evt) {
+	ALOGD("NetlinkHandler onEvent");
     const char *subsys = evt->getSubsystem();
     if (!subsys) {
         ALOGW("No subsystem found in netlink event");
         return;
     }
 
+	ALOGI("NetlinkHandler::subsys: %s", subsys);
     if (!strcmp(subsys, "net")) {
         NetlinkEvent::Action action = evt->getAction();
         const char *iface = evt->findParam("INTERFACE");
@@ -133,6 +135,7 @@ void NetlinkHandler::onEvent(NetlinkEvent *evt) {
 }
 
 void NetlinkHandler::notify(int code, const char *format, ...) {
+	ALOGD("NetlinkHandler::notify code: %d", code);
     char *msg;
     va_list args;
     va_start(args, format);
@@ -146,25 +149,30 @@ void NetlinkHandler::notify(int code, const char *format, ...) {
 }
 
 void NetlinkHandler::notifyInterfaceAdded(const char *name) {
-    notify(ResponseCode::InterfaceChange, "Iface added %s", name);
+	ALOGI("Iface added %s", name);
+    //notify(ResponseCode::InterfaceChange, "Iface added %s", name);
 }
 
 void NetlinkHandler::notifyInterfaceRemoved(const char *name) {
-    notify(ResponseCode::InterfaceChange, "Iface removed %s", name);
+    ALOGI("Iface removed %s", name);
+    //notify(ResponseCode::InterfaceChange, "Iface removed %s", name);
 }
 
 void NetlinkHandler::notifyInterfaceChanged(const char *name, bool isUp) {
-    notify(ResponseCode::InterfaceChange,
-           "Iface changed %s %s", name, (isUp ? "up" : "down"));
+    ALOGI("Iface changed %s %s", name, (isUp ? "up" : "down"));
+    //notify(ResponseCode::InterfaceChange,
+    //       "Iface changed %s %s", name, (isUp ? "up" : "down"));
 }
 
 void NetlinkHandler::notifyInterfaceLinkChanged(const char *name, bool isUp) {
-    notify(ResponseCode::InterfaceChange,
-           "Iface linkstate %s %s", name, (isUp ? "up" : "down"));
+    ALOGI("Iface linkstate %s %s", name, (isUp ? "up" : "down"));
+    //notify(ResponseCode::InterfaceChange,
+    //       "Iface linkstate %s %s", name, (isUp ? "up" : "down"));
 }
 
 void NetlinkHandler::notifyQuotaLimitReached(const char *name, const char *iface) {
-    notify(ResponseCode::BandwidthControl, "limit alert %s %s", name, iface);
+    ALOGI("limit alert %s %s", name, iface);
+    //notify(ResponseCode::BandwidthControl, "limit alert %s %s", name, iface);
 }
 
 void NetlinkHandler::notifyInterfaceClassActivity(const char *name,
@@ -172,34 +180,51 @@ void NetlinkHandler::notifyInterfaceClassActivity(const char *name,
                                                   const char *timestamp,
                                                   const char *uid) {
     if (timestamp == NULL)
-        notify(ResponseCode::InterfaceClassActivity,
-           "IfaceClass %s %s", isActive ? "active" : "idle", name);
+        ALOGI("IfaceClass %s %s", isActive ? "active" : "idle", name);
+    //notify(ResponseCode::InterfaceClassActivity,
+    //       "IfaceClass %s %s", isActive ? "active" : "idle", name);
     else if (uid != NULL && isActive)
-        notify(ResponseCode::InterfaceClassActivity,
-           "IfaceClass active %s %s %s", name, timestamp, uid);
+        ALOGI("IfaceClass active %s %s %s", name, timestamp, uid);
+    //notify(ResponseCode::InterfaceClassActivity,
+    //       "IfaceClass active %s %s %s", name, timestamp, uid);
     else
-        notify(ResponseCode::InterfaceClassActivity,
-           "IfaceClass %s %s %s", isActive ? "active" : "idle", name, timestamp);
+        ALOGI("IfaceClass %s %s %s", isActive ? "active" : "idle", name, timestamp);
+    //notify(ResponseCode::InterfaceClassActivity,
+    //       "IfaceClass %s %s %s", isActive ? "active" : "idle", name, timestamp);
 }
 
 void NetlinkHandler::notifyAddressChanged(NetlinkEvent::Action action, const char *addr,
                                           const char *iface, const char *flags,
                                           const char *scope) {
+	ALOGI("Address %s %s %s %s %s",
+           (action == NetlinkEvent::Action::kAddressUpdated) ? kUpdated : kRemoved,
+           addr, iface, flags, scope);
+#if 0
     notify(ResponseCode::InterfaceAddressChange,
            "Address %s %s %s %s %s",
            (action == NetlinkEvent::Action::kAddressUpdated) ? kUpdated : kRemoved,
            addr, iface, flags, scope);
+#endif
 }
 
 void NetlinkHandler::notifyInterfaceDnsServers(const char *iface,
                                                const char *lifetime,
                                                const char *servers) {
-    notify(ResponseCode::InterfaceDnsInfo, "DnsInfo servers %s %s %s",
-           iface, lifetime, servers);
+    ALOGI("DnsInfo servers %s %s %s", iface, lifetime, servers);
+    //notify(ResponseCode::InterfaceDnsInfo, "DnsInfo servers %s %s %s",
+    //       iface, lifetime, servers);
 }
 
 void NetlinkHandler::notifyRouteChange(NetlinkEvent::Action action, const char *route,
                                        const char *gateway, const char *iface) {
+	ALOGI("Route %s %s%s%s%s%s",
+           (action == NetlinkEvent::Action::kRouteUpdated) ? kUpdated : kRemoved,
+           route,
+           *gateway ? " via " : "",
+           gateway,
+           *iface ? " dev " : "",
+           iface);
+#if 0
     notify(ResponseCode::RouteChange,
            "Route %s %s%s%s%s%s",
            (action == NetlinkEvent::Action::kRouteUpdated) ? kUpdated : kRemoved,
@@ -208,8 +233,10 @@ void NetlinkHandler::notifyRouteChange(NetlinkEvent::Action action, const char *
            gateway,
            *iface ? " dev " : "",
            iface);
+#endif
 }
 
 void NetlinkHandler::notifyStrictCleartext(const char* uid, const char* hex) {
-    notify(ResponseCode::StrictCleartext, "%s %s", uid, hex);
+    ALOGI("notifyStrictCleartext %s %s", uid, hex);
+    //notify(ResponseCode::StrictCleartext, "%s %s", uid, hex);
 }
