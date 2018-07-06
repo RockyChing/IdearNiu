@@ -1,14 +1,14 @@
 # Makefile for the project
 
 TARGET = IdearNiu
-SRCTYPE = cpp
+SRCTYPE = c
 
 SRCDIRS  := .
 SRCDIRS  += $(shell ls -R | grep '^\./.*:$$' | awk '{gsub(":","");print}')
 ifeq ($(SRCTYPE), cpp)
 SRCFIXS  := .cpp
 else
-SRCFIXS  := .cpp
+SRCFIXS  := .c
 endif
 
 SRCS := $(foreach d,$(SRCDIRS),$(wildcard $(addprefix $(d)/*,$(SRCFIXS))))

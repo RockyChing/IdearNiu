@@ -68,6 +68,26 @@ static int sock_set_no_linger(int sockfd)
 	return res;
 }
 
+static int sock_set_sndbuf(int sockfd, const int buff_size)
+{
+	int optlen = sizeof(buff_size);
+	int res;
+
+	res = setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, (void *) &buff_size, optlen);
+	if (res == -1) {
+		error("sock_set_sndbuf() failed");
+		return -1;
+	}
+
+#if 0
+	int snd_len = 0;
+	if (0 == getsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &snd_len, (socklen_t *) &optlen)) {
+		info("socket sendbuf size: %d", snd_len);
+	}
+#endif
+	return res;
+}
+
 int sock_set_blocking(int sockfd, const int block)
 {
 	int res;

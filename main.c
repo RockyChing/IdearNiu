@@ -20,7 +20,7 @@ int cmd_cb(char *buff, size_t len)
 	return len;
 }
 
-int main_main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	setup_signal_handler();
 #if 0
@@ -90,7 +90,7 @@ int main_main(int argc, char *argv[])
 	//ping("8.8.8.8");
 	while (1) {
 		sleep(5);
-		ps_main();
+		// ps_main();
 	}
 
 #if TEST_TCP_SERVER == 1
