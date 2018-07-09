@@ -50,7 +50,7 @@
 #define DEBUG_REFS_CALLSTACK_PATH       "/data/debug"
 
 // log all reference counting operations
-#define PRINT_REFS                      0
+#define PRINT_REFS                      1
 
 // ---------------------------------------------------------------------------
 #define INITIAL_STRONG_VALUE (1<<28)
@@ -391,7 +391,6 @@ void RefBase::weakref_type::incWeak(const void* id)
     const int32_t c __unused = android_atomic_inc(&impl->mWeak);
     ALOG_ASSERT(c >= 0, "incWeak called on %p after last weak ref", this);
 }
-
 
 void RefBase::weakref_type::decWeak(const void* id)
 {

@@ -1,5 +1,5 @@
-#ifndef _NETD_LOG_H
-#define _NETD_LOG_H
+#ifndef _UTILS_LOG_H
+#define _UTILS_LOG_H
 
 #define LOG_ERROR    0
 #define LOG_WARNING  1
@@ -20,10 +20,7 @@
 		printf("\n"); \
 	} while(0)
 
-static inline void sys_debug(int level, const char *tag, int line_num, const char *fmt, ...)
-{
-
-}
+void sys_debug(int level, const char *tag, int line_num, const char *fmt, ...);
 
 #define debug(x...)   sys_debug(LOG_DEBUG, LOG_TAG, __LINE__, x)
 #define info(x...)    sys_debug(LOG_INFO, LOG_TAG, __LINE__, x)
@@ -42,8 +39,18 @@ static inline void sys_debug(int level, const char *tag, int line_num, const cha
 #define SLOGW(x...)   sys_debug(LOG_WARNING, LOG_TAG, __LINE__, x)
 #define SLOGE(x...)   sys_debug(LOG_ERROR, LOG_TAG, __LINE__, x)
 
-#define ALOG_ASSERT(b, x...) sys_debug(LOG_ERROR, LOG_TAG, __LINE__, x)
-
+/*
+ * Assertion that generates a log message when the assertion fails.
+ * Stripped out of release builds.	Uses the current LOG_TAG.
+ */
+#ifndef ALOG_ASSERT
+//#define ALOG_ASSERT(cond, ...) LOG_FATAL_IF(!(cond), ## __VA_ARGS__)
+#define ALOG_ASSERT(cond, x...) do { \
+		if (!(cond)) { \
+			sys_debug(LOG_ERROR, LOG_TAG, __LINE__, x); \
+		} \
+	} while (0)
+#endif
 
 #endif
 
