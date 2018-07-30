@@ -33,6 +33,18 @@ void assert_fail(const char *, const char*, unsigned int, const char *);
         return -1; }                                                   \
     } while (0)
 
+#define dump(buf, len)	\
+	do { \
+		int i; \
+		char *p = (char*) buf; \
+		for(i = 0; i < len; i++) { \
+			if(0 == (i % 16) && 0 != i) \
+				printf("\n"); \
+			printf("%02x ", (p[i]&0xff)); \
+		} \
+		printf("\n"); \
+	} while(0)
+
 extern void sys_debug (int level, char *fmt, ...);
 
 #define debug(x...)   sys_debug(LOG_DEBUG, x)
