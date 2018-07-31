@@ -59,4 +59,3 @@ exit:
 	//unlock(log_mutex);
 }
 
-
