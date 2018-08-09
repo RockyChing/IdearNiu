@@ -37,6 +37,7 @@
 #include "log_util.h"
 
 #define VERBOSE 2
+#define LOG_TAG "dhcp_client"
 
 static int verbose = 1;
 static char errmsg[2048];

@@ -13,6 +13,7 @@
 #include <main.h>
 #include <utils.h>
 #include <busybox.h>
+#include <net_util.h>
 
 int cmd_cb(char *buff, size_t len)
 {
@@ -23,17 +24,20 @@ int cmd_cb(char *buff, size_t len)
 int main(int argc, char *argv[])
 {
 	setup_signal_handler();
+	//network_time_sync(NULL);
 #if 0
 	run_command("wpa_cli scan", cmd_cb);
 	//sleep(5);
 	run_command("wpa_cli scan_result", cmd_cb);
 	common_test();
-#endif
+
 	if (argc == 2) {
 		if (!strcmp(argv[1], "ps")) {
 			ps_main();
 		}
 	}
+#endif
+
 #if TEST_ASSERT == 1
 	/* trigger a fault */
 	assert_param(argc == 0);
@@ -85,6 +89,9 @@ int main(int argc, char *argv[])
 	return base64_test_entry();
 #elif TEST_HTTP_CLIENT == 1
 	httpc_test_entry();
+#elif TEST_DHCPC == 1
+	dhcp_main(argc, argv);
+	return 0;
 #endif
 	/* only the superuser can create a raw socket */
 	//ping("8.8.8.8");

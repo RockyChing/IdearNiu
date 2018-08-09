@@ -23,6 +23,7 @@
 #define TEST_NET_IFREQ 0
 #define TEST_BASE64 0
 #define TEST_HTTP_CLIENT 0
+#define TEST_DHCPC 1
 
 
 
@@ -51,6 +52,8 @@ extern int socket_common_test(int argc, char *argv[]);
 extern int getevent_test_entry(int argc, char *argv[]);
 extern int tinyalsa_test_entry(int argc, char *argv[]);
 extern int base64_test_entry();
+
+extern int dhcp_main(int argc, char *argv[]);
 
 #endif
 

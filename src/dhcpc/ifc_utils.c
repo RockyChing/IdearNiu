@@ -38,6 +38,8 @@
 #include <linux/rtnetlink.h>
 #include <linux/sockios.h>
 
+#define LOG_TAG "ifc_utils"
+
 #include "ifc.h"
 #include "log_util.h"
 
@@ -665,7 +667,7 @@ ifc_configure(const char *ifname,
         in_addr_t dns1,
         in_addr_t dns2) {
 
-    char dns_prop_name[PROPERTY_KEY_MAX];
+    char dns_prop_name[64];
 
     ifc_init();
 
@@ -693,9 +695,9 @@ ifc_configure(const char *ifname,
     ifc_close();
 
     snprintf(dns_prop_name, sizeof(dns_prop_name), "net.%s.dns1", ifname);
-    property_set(dns_prop_name, dns1 ? ipaddr_to_string(dns1) : "");
+    debug("%s=%s", dns_prop_name, dns1 ? ipaddr_to_string(dns1) : "");
     snprintf(dns_prop_name, sizeof(dns_prop_name), "net.%s.dns2", ifname);
-    property_set(dns_prop_name, dns2 ? ipaddr_to_string(dns2) : "");
+    debug("%s=%s", dns_prop_name, dns2 ? ipaddr_to_string(dns2) : "");
 
     return 0;
 }
