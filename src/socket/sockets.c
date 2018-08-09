@@ -490,14 +490,14 @@ int sock_connect(const char *srvip, const int port,
 				break;
 			}
 
-			sock_set_blocking(sockfd, SOCKET_NONBLOCK);
+			//sock_set_blocking(sockfd, SOCKET_NONBLOCK);
 		} else {
 			/*
 	         * A timeout was specified. We put the socket into non-blocking
 	         * mode, connect, and then wait for the connection to be
 	         * established, fail, or timeout.
 	         */
-	        sock_set_blocking(sockfd, SOCKET_NONBLOCK);
+	        //sock_set_blocking(sockfd, SOCKET_NONBLOCK);
 
 			ret = connect(sockfd, (struct sockaddr *) &server, sizeof(server));
 			if (ret != 0) {
