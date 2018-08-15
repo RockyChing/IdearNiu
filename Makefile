@@ -3,8 +3,9 @@
 TARGET = IdearNiu
 SRCTYPE = c
 
-SRCDIRS  := .
-SRCDIRS  += $(shell ls -R | grep '^\./.*:$$' | awk '{gsub(":","");print}')
+SRCDIRS := . ./src/util ./src/crypto ./src/netutils ./src/ SRCDIRS += ./src/socket ./src/thread
+SRCDIRS += ./src/tinyalsa
+#SRCDIRS  += $(shell ls -R | grep '^\./.*:$$' | awk '{gsub(":","");print}')
 ifeq ($(SRCTYPE), cpp)
 SRCFIXS  := .cpp
 else
