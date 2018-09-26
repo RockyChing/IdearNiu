@@ -34,7 +34,7 @@ STRIP = $(CROSS_COMPILE)strip
 
 CFLAGS = -O2 -Wall -Wno-unused-function
 CFLAGS += -I./madplay-0.15.2b -I./libmad-0.15.1b -I./libid3tag-0.15.1b
-LIBS  := -lm -lrt -lz -lmad -lasound
+LIBS  := -lm -lrt -lz -lasound
 
 LDFLAG += -Wl,-gc-sections
 ifeq ($(CONFIG_HOST), n)
@@ -42,6 +42,8 @@ CFLAGS += -muclibc -march=mips32r2
 LDFLAG += -muclibc
 endif
 
+# libmad
+CFLAGS += -DFPM_INTEL
 CFLAGS += -DHAVE_CONFIG_H
 CFLAGS += -DDEBUG
 
