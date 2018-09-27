@@ -3,8 +3,10 @@
 TARGET = IdearNiu
 SRCTYPE = c
 
-SRCDIRS := . ./src/util ./src/crypto ./src/netutils ./src/ SRCDIRS += ./src/socket ./src/thread
+SRCDIRS := . ./src/util ./src/crypto ./src/netutils ./src/
+SRCDIRS += ./src/socket ./src/thread
 SRCDIRS += ./src/tinyalsa
+SRCDIRS += ./src/dhcpc
 #SRCDIRS  += $(shell ls -R | grep '^\./.*:$$' | awk '{gsub(":","");print}')
 ifeq ($(SRCTYPE), cpp)
 SRCFIXS  := .cpp
@@ -22,7 +24,7 @@ endif
 # for debug
 $(warning source list $(SRCS))
 # for debug
-$(warning objs list $(OBJS))
+# $(warning objs list $(OBJS))
 
 CXX = g++
 ifeq ($(SRCTYPE), cpp)
