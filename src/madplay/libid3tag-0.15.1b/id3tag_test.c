@@ -10,6 +10,9 @@
 #include <time.h>
 #include <assert.h>
 
+
+#define LOG_TAG "id3tag-test"
+#include "log_util.h"
 #include "id3tag.h"
 #include "tag.h"
 
@@ -184,10 +187,6 @@ struct rgain {
 
 
 
-
-static void sys_debug(const char *tag, int line_num, const char *fmt, ...);
-#define debug(x...) sys_debug("ID3-TEST", __LINE__, x)
-
 #define gettext_noop(String) String
 #define N_(text)	gettext_noop(text)
 #define _
@@ -197,59 +196,6 @@ struct player {
 	int verbosity;
 	int options;
 };
-
-static void sys_debug(const char *tag, int line_num, const char *fmt, ...)
-{
-	char buf[512] = { 0 };
-	va_list ap;
-	va_start(ap, fmt);
-
-	vsnprintf(buf, sizeof(buf)-1, fmt, ap);
-	if (strstr (buf, "%s") != NULL) {
-		fprintf (stderr, "WARNING, xa_debug() called with '%%s' formatted string [%s]!", buf);
-		goto exit;
-	}
-
-	fprintf(stderr, "[%s(%d)] %s\n", tag, line_num, buf);
-	fflush(stderr);
-exit:
-	va_end (ap);
-}
-
-/*
- * NAME:	error()
- * DESCRIPTION:	show an error using proper interaction with message()
- */
-static void error(char const *id, char const *format, ...)
-{
-  int err;
-  va_list args;
-
-  err = errno;
-
-  if (id)
-    fprintf(stderr, "%s: ", id);
-
-  va_start(args, format);
-
-  if (*format == ':') {
-    if (format[1] == 0) {
-      format = va_arg(args, char const *);
-      errno = err;
-      perror(format);
-    }
-    else {
-      errno = err;
-      perror(format + 1);
-    }
-  }
-  else {
-    vfprintf(stderr, format, args);
-    fputc('\n', stderr);
-  }
-
-  va_end(args);
-}
 
 /*
  * NAME:	detail()
@@ -462,7 +408,7 @@ static void process_id3(struct id3_tag const *tag, struct player *player)
 	ms = atol(latin1);
 	if (ms > 0)
 	  //mad_timer_set(&player->stats.total_time, 0, ms, 1000);
-	  debug("mad_timer_set");
+	  ALOGD("mad_timer_set");
 
 	free(latin1);
       }
@@ -530,7 +476,7 @@ static void process_id3(struct id3_tag const *tag, struct player *player)
 	  voladj_float  = (double) voladj_fixed / 512;
 
 	  //set_gain(player, GAIN_VOLADJ, voladj_float);
-	  debug("set_gain NOT support!");
+	  ALOGD("set_gain NOT support!");
 
 	  if (player->verbosity >= 0) {
 	    detail(_("Relative Volume"),
@@ -569,26 +515,26 @@ static void process_id3(struct id3_tag const *tag, struct player *player)
 		//struct rgain rgain[2];
 
 		//mad_bit_init(&ptr, data);
-		debug("mad_bit_init NOT support!");
+		ALOGD("mad_bit_init NOT support!");
 
 		//peak = mad_bit_read(&ptr, 32) << 5;
 
 		//rgain_parse(&rgain[0], &ptr);
 		//rgain_parse(&rgain[1], &ptr);
-		debug("rgain_parse NOT support!");
+		ALOGD("rgain_parse NOT support!");
 
 		//use_rgain(player, rgain);
-		debug("use_rgain NOT support!");
+		ALOGD("use_rgain NOT support!");
 
 		//mad_bit_finish(&ptr);
-		debug("mad_bit_finish NOT support!");
+		ALOGD("mad_bit_finish NOT support!");
       }
     }
   }
 }
 
 
-#define FILE "../song.mp3"
+#define FILE_NAME "../song.mp3"
 /* try reading ID3 tag information now (else read later from stream) */
 #ifdef ID3TAG_TEST
 int main(int argc, char *argv[])
@@ -600,18 +546,18 @@ int id3tag_main(int argc, char *argv[])
 	struct player player;
 	player.verbosity = 1;
 	struct id3_file *file;
-	fd = open(FILE, O_RDONLY);
+	fd = open(FILE_NAME, O_RDONLY);
 	if (fd <= 0) {
-		debug("open %s error!", FILE);
+		ALOGD("open %s error!", FILE_NAME);
 		goto exit;
 	}
 
 	file = id3_file_fdopen(fd, ID3_FILE_MODE_READONLY);
 	if (file == 0) {
-		debug("id3_file_fdopen error!");
+		ALOGD("id3_file_fdopen error!");
 	  	close(fd);
 	} else {
-		debug("go to process id3");
+		ALOGD("go to process id3");
 		process_id3(id3_file_tag(file), &player);
 		id3_file_close(file);
 	}

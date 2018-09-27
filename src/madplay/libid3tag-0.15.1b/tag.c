@@ -19,31 +19,34 @@
  * $Id: tag.c,v 1.20 2004/02/17 02:04:10 rob Exp $
  */
 
-# ifdef HAVE_CONFIG_H
-#  include "config.h"
-# endif
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
-# include "global.h"
+#include "global.h"
 
-# include <string.h>
-# include <stdlib.h>
+#include <string.h>
+#include <stdlib.h>
 
-# ifdef HAVE_ASSERT_H
-#  include <assert.h>
-# endif
+#ifdef HAVE_ASSERT_H
+#include <assert.h>
+#endif
 
-# include "id3tag.h"
-# include "tag.h"
-# include "frame.h"
-# include "compat.h"
-# include "parse.h"
-# include "render.h"
-# include "latin1.h"
-# include "ucs4.h"
-# include "genre.h"
-# include "crc.h"
-# include "field.h"
-# include "util.h"
+#include "id3tag.h"
+#include "tag.h"
+#include "frame.h"
+#include "compat.h"
+#include "parse.h"
+#include "render.h"
+#include "latin1.h"
+#include "ucs4.h"
+#include "genre.h"
+#include "crc.h"
+#include "field.h"
+#include "util.h"
+
+#define LOG_TAG "id3tag-tag"
+#include "log_util.h"
 
 /*
  * NAME:	tag->new()
@@ -294,13 +297,15 @@ signed long id3_tag_query(id3_byte_t const *data, id3_length_t length)
 
   assert(data);
 
+  printf("id3_tag_query length: %d\n", length);
   switch (tagtype(data, length)) {
   case TAGTYPE_ID3V1:
     return 128;
 
   case TAGTYPE_ID3V2:
+  	dump(data, length);
     parse_header(&data, &version, &flags, &size);
-
+	ALOGD("id3_tag_query version: %04x, flag: %x, size: %x\n", version, flags, size);
     if (flags & ID3_TAG_FLAG_FOOTERPRESENT)
       size += 10;
 

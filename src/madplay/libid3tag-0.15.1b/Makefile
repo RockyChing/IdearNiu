@@ -13,6 +13,7 @@ SRCDIRS  += $(shell ls -R | grep '^\./.*:$$' | awk '{gsub(":","");print}')
 SRCFIXS  := .c
 
 SRCS := $(foreach d,$(SRCDIRS),$(wildcard $(addprefix $(d)/*,$(SRCFIXS))))
+SRCS += ../../util/log_util.c
 OBJS := $(patsubst %.c,%.o,$(SRCS))
 
 # for debug
@@ -33,7 +34,7 @@ AR = $(CROSS_COMPILE)ar cr
 STRIP = $(CROSS_COMPILE)strip
 
 CFLAGS = -O2 -Wall -Wno-unused-function
-CFLAGS += -I.
+CFLAGS += -I. -I../../../include
 LIBS  := -lm -lrt -lz
 
 LDFLAG += -Wl,-gc-sections

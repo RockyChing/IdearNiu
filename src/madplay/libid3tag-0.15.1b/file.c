@@ -41,6 +41,8 @@
 # include "file.h"
 # include "tag.h"
 # include "field.h"
+#define LOG_TAG "id3tag-file"
+#include "log_util.h"
 
 struct filetag {
   struct id3_tag *tag;
@@ -79,11 +81,14 @@ signed long query_tag(FILE *iofile)
   if (fgetpos(iofile, &save_position) == -1)
     return 0;
 
+  ALOGD("save_position: %d", save_position);
+
   size = id3_tag_query(query, fread(query, 1, sizeof(query), iofile));
 
   if (fsetpos(iofile, &save_position) == -1)
     return 0;
 
+  ALOGD("query_tag size: %d", size);
   return size;
 }
 
@@ -202,7 +207,9 @@ struct id3_tag *add_tag(struct id3_file *file, id3_length_t length)
   struct filetag filetag;
   struct id3_tag *tag;
 
+  ALOGD("add_tag length: %d", length);
   location = ftell(file->iofile);
+  ALOGD("add_tag location: %d", location);
   if (location == -1)
     return 0;
 
@@ -212,16 +219,19 @@ struct id3_tag *add_tag(struct id3_file *file, id3_length_t length)
 
     begin1 = location;
     end1   = begin1 + length;
+	ALOGD("add_tag begin1: %d", begin1);
+	ALOGD("add_tag end1: %d", end1);
+	ALOGD("add_tag ntags: %d", file->ntags);
 
     for (i = 0; i < file->ntags; ++i) {
       begin2 = file->tags[i].location;
       end2   = begin2 + file->tags[i].length;
 
       if (begin1 == begin2 && end1 == end2)
-	return file->tags[i].tag;  /* duplicate */
+		return file->tags[i].tag;  /* duplicate */
 
       if (begin1 < end2 && end1 > begin2)
-	return 0;  /* overlap */
+		return 0;  /* overlap */
     }
   }
 
@@ -242,6 +252,23 @@ struct id3_tag *add_tag(struct id3_file *file, id3_length_t length)
     id3_tag_addref(tag);
 
   return tag;
+}
+
+static void dump_last128_byte(FILE *file)
+{
+	assert(file);
+	id3_byte_t buf[128] = { 0 };
+	size_t nr = fread(buf, 1, sizeof(buf), file);
+	printf("nr: %d\n", nr);
+	int i, j = 0;
+	for (i = 0; i < sizeof(buf); i ++) {
+		printf("%02x ", buf[i]);
+		j ++;
+		if ((j % 16) == 0) {
+			printf("\n");
+		}
+	}
+	printf("\n");
 }
 
 /*
@@ -267,13 +294,15 @@ int search_tags(struct id3_file *file)
       fsetpos(file->iofile, &save_position) == -1)
     return -1;
 
-  /* look for an ID3v1 tag */
-
+  /* look for an ID3v1 tag
+   * ID3v1 tag: 1. at the end of *.mp3 file; 2. fix size 128 byte
+   */
+  ALOGD("look for an ID3v1 tag");
   if (fseek(file->iofile, -128, SEEK_END) == 0) {
+  	// dump_last128_byte(file->iofile);
     size = query_tag(file->iofile);
     if (size > 0) {
       struct id3_tag const *tag;
-
       tag = add_tag(file, size);
 
       /* if this is indeed an ID3v1 tag, mark the file so */
@@ -284,9 +313,9 @@ int search_tags(struct id3_file *file)
   }
 
   /* look for a tag at the beginning of the file */
-
   rewind(file->iofile);
 
+  ALOGD("look for an ID3v2 tag");
   size = query_tag(file->iofile);
   if (size > 0) {
     struct id3_tag const *tag;
@@ -295,7 +324,6 @@ int search_tags(struct id3_file *file)
     tag = add_tag(file, size);
 
     /* locate tags indicated by SEEK frames */
-
     while (tag && (frame = id3_tag_findframe(tag, "SEEK", 0))) {
       long seek;
 
