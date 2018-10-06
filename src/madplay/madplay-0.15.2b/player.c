@@ -375,9 +375,9 @@ void *map_file(int fd, unsigned long length)
   if (fdm == MAP_FAILED)
     return 0;
 
-# if defined(HAVE_MADVISE)
+#if defined(HAVE_MADVISE)
   madvise(fdm, length, MADV_SEQUENTIAL);
-# endif
+#endif
 
   return fdm;
 }
@@ -399,8 +399,7 @@ int unmap_file(void *fdm, unsigned long length)
  * NAME:	decode->input_mmap()
  * DESCRIPTION:	(re)fill decoder input buffer from a memory map
  */
-static
-enum mad_flow decode_input_mmap(void *data, struct mad_stream *stream)
+static enum mad_flow decode_input_mmap(void *data, struct mad_stream *stream)
 {
   struct player *player = data;
   struct input *input = &player->input;
@@ -418,12 +417,11 @@ enum mad_flow decode_input_mmap(void *data, struct mad_stream *stream)
     posn = stream->next_frame - input->fdm;
 
     /* check for file size change and update map */
-
     if (stat.st_size > input->length) {
       if (unmap_file(input->fdm, input->length) == -1) {
-	input->fdm  = 0;
-	input->data = 0;
-	return MAD_FLOW_BREAK;
+	    input->fdm  = 0;
+	    input->data = 0;
+	    return MAD_FLOW_BREAK;
       }
 
       player->stats.total_bytes += stat.st_size - input->length;
@@ -432,8 +430,8 @@ enum mad_flow decode_input_mmap(void *data, struct mad_stream *stream)
 
       input->fdm = map_file(input->fd, input->length);
       if (input->fdm == 0) {
-	input->data = 0;
-	return MAD_FLOW_BREAK;
+	    input->data = 0;
+	    return MAD_FLOW_BREAK;
       }
 
       mad_stream_buffer(stream, input->fdm + posn, input->length - posn);
@@ -442,7 +440,6 @@ enum mad_flow decode_input_mmap(void *data, struct mad_stream *stream)
     }
 
     /* end of memory map; append MAD_BUFFER_GUARD zero bytes */
-
     left = input->length - posn;
 
     input->data = malloc(left + MAD_BUFFER_GUARD);
@@ -489,14 +486,12 @@ enum mad_flow decode_input_read(void *data, struct mad_stream *stream)
   do {
     len = read(input->fd, input->data + input->length,
 	       MPEG_BUFSZ - input->length);
-  }
-  while (len == -1 && errno == EINTR);
+  } while (len == -1 && errno == EINTR);
 
   if (len == -1) {
     error("input", ":read");
     return MAD_FLOW_BREAK;
-  }
-  else if (len == 0) {
+  } else if (len == 0) {
     input->eof = 1;
 
     assert(MPEG_BUFSZ - input->length >= MAD_BUFFER_GUARD);
@@ -524,7 +519,6 @@ enum mad_flow decode_header(void *data, struct mad_header const *header)
     return MAD_FLOW_STOP;
 
   /* accounting (except first frame) */
-
   if (player->stats.absolute_framecount) {
     ++player->stats.absolute_framecount;
     mad_timer_add(&player->stats.absolute_timer, header->duration);
@@ -1103,8 +1097,7 @@ void use_rgain(struct player *player, struct rgain *list)
  * NAME:	decode->filter()
  * DESCRIPTION:	perform filtering on decoded frame
  */
-static
-enum mad_flow decode_filter(void *data, struct mad_stream const *stream,
+static enum mad_flow decode_filter(void *data, struct mad_stream const *stream,
 			    struct mad_frame *frame)
 {
   struct player *player = data;
@@ -1455,8 +1448,7 @@ void show_status(struct stats *stats,
  * NAME:	decode->output()
  * DESCRIPTION: configure audio module and output decoded samples
  */
-static
-enum mad_flow decode_output(void *data, struct mad_header const *header,
+static enum mad_flow decode_output(void *data, struct mad_header const *header,
 			    struct mad_pcm *pcm)
 {
   struct player *player = data;
@@ -1493,17 +1485,17 @@ enum mad_flow decode_output(void *data, struct mad_header const *header,
 
     default:
       if (header->mode == MAD_MODE_DUAL_CHANNEL) {
-	if (output->select == PLAYER_CHANNEL_DEFAULT) {
-	  if (player->verbosity >= -1) {
-	    error("output",
-		  _("no channel selected for dual channel; using first"));
-	  }
+    	if (output->select == PLAYER_CHANNEL_DEFAULT) {
+    	  if (player->verbosity >= -1) {
+    	    error("output",
+    		  _("no channel selected for dual channel; using first"));
+    	  }
 
-	  output->select = -PLAYER_CHANNEL_LEFT;
-	}
+    	  output->select = -PLAYER_CHANNEL_LEFT;
+	    }
 
-	ch2 = 0;
-	nchannels = 1;
+	    ch2 = 0;
+	    nchannels = 1;
       }
     }
   }
@@ -1539,13 +1531,12 @@ enum mad_flow decode_output(void *data, struct mad_header const *header,
     output->speed_out     = control.config.speed;
     output->precision_out = control.config.precision;
 
-    if (player->verbosity >= -1 &&
-	output->channels_in != output->channels_out) {
+    if (player->verbosity >= -1 && output->channels_in != output->channels_out) {
       if (output->channels_in == 1)
-	error("output", _("mono output not available; forcing stereo"));
+	    error("output", _("mono output not available; forcing stereo"));
       else {
-	error("output", _("stereo output not available; using first channel "
-			  "(use -m to mix)"));
+    	error("output", _("stereo output not available; using first channel "
+    			  "(use -m to mix)"));
       }
     }
 
@@ -1556,55 +1547,50 @@ enum mad_flow decode_output(void *data, struct mad_header const *header,
 	    output->precision_in, output->precision_out);
     }
 
-    if (player->verbosity >= -1 &&
-	speed_request != output->speed_out) {
+    if (player->verbosity >= -1 && speed_request != output->speed_out) {
       error("output", _("sample frequency %u Hz not available; using %u Hz"),
 	    speed_request, output->speed_out);
     }
 
     /* check whether resampling is necessary */
-    if (abs(output->speed_out - output->speed_in) <
-	(long) FREQ_TOLERANCE * output->speed_in / 100) {
+    if (abs(output->speed_out - output->speed_in) <	(long) FREQ_TOLERANCE * output->speed_in / 100) {
       if (output->resampled) {
-	resample_finish(&output->resample[0]);
-	resample_finish(&output->resample[1]);
+    	resample_finish(&output->resample[0]);
+    	resample_finish(&output->resample[1]);
 
-	free(output->resampled);
-	output->resampled = 0;
+    	free(output->resampled);
+    	output->resampled = 0;
       }
-    }
-    else {
+    } else {
       if (output->resampled) {
-	resample_finish(&output->resample[0]);
-	resample_finish(&output->resample[1]);
-      }
-      else {
-	output->resampled = malloc(sizeof(*output->resampled));
-	if (output->resampled == 0) {
-	  error("output",
-		_("not enough memory to allocate resampling buffer"));
+    	resample_finish(&output->resample[0]);
+    	resample_finish(&output->resample[1]);
+      } else {
+    	output->resampled = malloc(sizeof(*output->resampled));
+    	if (output->resampled == 0) {
+    	  error("output",
+    		_("not enough memory to allocate resampling buffer"));
 
-	  output->speed_in = 0;
-	  return MAD_FLOW_BREAK;
-	}
+    	  output->speed_in = 0;
+    	  return MAD_FLOW_BREAK;
+    	}
       }
 
       if (resample_init(&output->resample[0],
 			output->speed_in, output->speed_out) == -1 ||
 	  resample_init(&output->resample[1],
 			output->speed_in, output->speed_out) == -1) {
-	error("output", _("cannot resample %u Hz to %u Hz"),
-	      output->speed_in, output->speed_out);
+    	error("output", _("cannot resample %u Hz to %u Hz"),
+    	      output->speed_in, output->speed_out);
 
-	free(output->resampled);
-	output->resampled = 0;
+    	free(output->resampled);
+    	output->resampled = 0;
 
-	output->speed_in = 0;
-	return MAD_FLOW_BREAK;
-      }
-      else if (player->verbosity >= -1) {
-	error("output", _("resampling %u Hz to %u Hz"),
-	      output->speed_in, output->speed_out);
+    	output->speed_in = 0;
+    	return MAD_FLOW_BREAK;
+      } else if (player->verbosity >= -1) {
+    	error("output", _("resampling %u Hz to %u Hz"),
+    	      output->speed_in, output->speed_out);
       }
     }
   }
@@ -1620,17 +1606,16 @@ enum mad_flow decode_output(void *data, struct mad_header const *header,
 					   (*output->resampled)[0]);
     control.play.samples[0] = (*output->resampled)[0];
 
-    if (ch2 == ch1)
+    if (ch2 == ch1) {
       control.play.samples[1] = control.play.samples[0];
-    else if (ch2) {
+    } else if (ch2) {
       resample_block(&output->resample[1], pcm->length, ch2,
 		     (*output->resampled)[1]);
       control.play.samples[1] = (*output->resampled)[1];
-    }
-    else
+    } else {
       control.play.samples[1] = 0;
-  }
-  else {
+    }
+  } else {
     control.play.nsamples   = pcm->length;
     control.play.samples[0] = ch1;
     control.play.samples[1] = ch2;
@@ -1800,7 +1785,7 @@ int decode(struct player *player)
 
   /* prepare input buffers */
 
-# if defined(HAVE_MMAP)
+#if defined(HAVE_MMAP)
   if (S_ISREG(stat.st_mode) && stat.st_size > 0) {
     player->input.length = stat.st_size;
 
@@ -1810,7 +1795,7 @@ int decode(struct player *player)
 
     player->input.data = player->input.fdm;
   }
-# endif
+#endif
 
   if (player->input.data == 0) {
     player->input.data = malloc(MPEG_BUFSZ);
@@ -1839,9 +1824,9 @@ int decode(struct player *player)
   player->stats.audio.peak_sample     = 0;
 
   mad_decoder_init(&decoder, player,
-# if defined(HAVE_MMAP)
+#if defined(HAVE_MMAP)
 		   player->input.fdm ? decode_input_mmap :
-# endif
+#endif
 		   decode_input_read,
 		   decode_header, decode_filter,
 		   player->output.command ? decode_output : 0,
@@ -1859,7 +1844,7 @@ int decode(struct player *player)
 
   mad_decoder_finish(&decoder);
 
-# if defined(HAVE_MMAP)
+#if defined(HAVE_MMAP)
   if (player->input.fdm) {
     if (unmap_file(player->input.fdm, player->input.length) == -1) {
       error("decode", ":munmap");
@@ -1871,7 +1856,7 @@ int decode(struct player *player)
     if (!player->input.eof)
       player->input.data = 0;
   }
-# endif
+#endif
 
   if (player->input.data) {
     free(player->input.data);
@@ -1887,8 +1872,7 @@ int decode(struct player *player)
  * NAME:	play_one()
  * DESCRIPTION:	open and play a single file
  */
-static
-int play_one(struct player *player)
+static int play_one(struct player *player)
 {
   char const *file = player->playlist.entries[player->playlist.current];
   int result;
@@ -1901,8 +1885,7 @@ int play_one(struct player *player)
 
     player->input.path = _("stdin");
     player->input.fd   = STDIN_FILENO;
-  }
-  else {
+  } else {
     player->input.path = file;
     player->input.fd   = open(file, O_RDONLY | O_BINARY);
     if (player->input.fd == -1) {
@@ -1911,12 +1894,10 @@ int play_one(struct player *player)
     }
   }
 
-  if (player->verbosity >= 0 &&
-      player->playlist.length > 1)
+  if (player->verbosity >= 0 && player->playlist.length > 1)
     message(">> %s\n", player->input.path);
 
   /* reset file information */
-
   player->stats.total_bytes = 0;
   player->stats.total_time  = mad_timer_zero;
 
@@ -1944,9 +1925,7 @@ int play_one(struct player *player)
   }
 
   result = decode(player);
-
-  if (result == 0 && player->verbosity >= 0 &&
-      !(player->options & PLAYER_OPTION_SHOWTAGSONLY)) {
+  if (result == 0 && player->verbosity >= 0 && !(player->options & PLAYER_OPTION_SHOWTAGSONLY)) {
     char time_str[19], db_str[7];
     char const *peak_str;
     mad_fixed_t peak;
@@ -1960,7 +1939,7 @@ int play_one(struct player *player)
 
       point = strchr(time_str, '.');
       if (point)
-	*point = *localeconv()->decimal_point;
+    	*point = *localeconv()->decimal_point;
     }
 # endif
 
@@ -2004,7 +1983,6 @@ int play_all(struct player *player)
   char const *tmp;
 
   /* set up playlist */
-
   count = playlist->length;
 
   if (player->options & PLAYER_OPTION_SHUFFLE) {
@@ -2021,65 +1999,63 @@ int play_all(struct player *player)
   }
 
   /* run playlist */
-
   while (count && (player->repeat == -1 || player->repeat--)) {
     while (playlist->current < playlist->length) {
       i = playlist->current;
 
       if (playlist->entries[i] == 0) {
-	++playlist->current;
-	continue;
+	    ++playlist->current;
+	    continue;
       }
 
       player->control = PLAYER_CONTROL_DEFAULT;
 
       if (play_one(player) == -1) {
-	playlist->entries[i] = 0;
-	--count;
+	    playlist->entries[i] = 0;
+	    --count;
 
-	result = -1;
+	    result = -1;
       }
 
       if ((player->options & PLAYER_OPTION_TIMED) &&
-	  mad_timer_compare(player->stats.global_timer,
+	    mad_timer_compare(player->stats.global_timer,
 			    player->global_stop) > 0) {
-	count = 0;
-	break;
+	    count = 0;
+	    break;
       }
 
       switch (player->control) {
       case PLAYER_CONTROL_DEFAULT:
-	if ((player->options & PLAYER_OPTION_SHUFFLE) && player->repeat &&
-	    ++i < playlist->length) {
-	  /* pick something from the next half only */
-	  j = (i + rand() % ((playlist->length + 1) / 2)) % playlist->length;
+    	if ((player->options & PLAYER_OPTION_SHUFFLE) && player->repeat && ++i < playlist->length) {
+    	  /* pick something from the next half only */
+    	  j = (i + rand() % ((playlist->length + 1) / 2)) % playlist->length;
 
-	  tmp = playlist->entries[i];
-	  playlist->entries[i] = playlist->entries[j];
-	  playlist->entries[j] = tmp;
-	}
-	/* fall through */
+    	  tmp = playlist->entries[i];
+    	  playlist->entries[i] = playlist->entries[j];
+    	  playlist->entries[j] = tmp;
+    	}
+    	/* fall through */
 
       case PLAYER_CONTROL_NEXT:
-	++playlist->current;
-	break;
+    	++playlist->current;
+    	break;
 
       case PLAYER_CONTROL_PREVIOUS:
-	do {
-	  if (playlist->current-- == 0)
-	    playlist->current = playlist->length;
-	}
-	while (playlist->current < playlist->length &&
-	       playlist->entries[playlist->current] == 0);
-	break;
+    	do {
+    	  if (playlist->current-- == 0)
+    	    playlist->current = playlist->length;
+    	}
+    	while (playlist->current < playlist->length &&
+    	       playlist->entries[playlist->current] == 0);
+	    break;
 
       case PLAYER_CONTROL_REPLAY:
-	break;
+	    break;
 
       case PLAYER_CONTROL_STOP:
-	playlist->current = playlist->length;
-	count = 0;
-	break;
+    	playlist->current = playlist->length;
+    	count = 0;
+    	break;
       }
     }
 
