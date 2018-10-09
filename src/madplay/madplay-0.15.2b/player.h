@@ -113,9 +113,9 @@ struct player {
     char const *path;
 
     int fd;
-# if defined(HAVE_MMAP)
+#if defined(HAVE_MMAP)
     unsigned char *fdm;
-# endif
+#endif
 
     unsigned char *data;
     unsigned long length;

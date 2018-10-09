@@ -19,12 +19,12 @@
  * $Id: minimad.c,v 1.4 2004/01/23 09:41:32 rob Exp $
  */
 
-# include <stdio.h>
-# include <unistd.h>
-# include <sys/stat.h>
-# include <sys/mman.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 
-# include "mad.h"
+#include "mad.h"
 
 /*
  * This is perhaps the simplest example use of the MAD high-level API.
@@ -79,10 +79,7 @@ struct buffer {
  * address and length of the mapping. When this callback is called a second
  * time, we are finished decoding.
  */
-
-static
-enum mad_flow input(void *data,
-		    struct mad_stream *stream)
+static enum mad_flow input(void *data, struct mad_stream *stream)
 {
   struct buffer *buffer = data;
 
@@ -92,7 +89,6 @@ enum mad_flow input(void *data,
   mad_stream_buffer(stream, buffer->start, buffer->length);
 
   buffer->length = 0;
-
   return MAD_FLOW_CONTINUE;
 }
 
@@ -103,9 +99,7 @@ enum mad_flow input(void *data,
  * obtain any exceptional audio quality. It is therefore not recommended to
  * use this routine if high-quality output is desired.
  */
-
-static inline
-signed int scale(mad_fixed_t sample)
+static inline signed int scale(mad_fixed_t sample)
 {
   /* round */
   sample += (1L << (MAD_F_FRACBITS - 16));
@@ -125,9 +119,7 @@ signed int scale(mad_fixed_t sample)
  * MPEG audio data has been completely decoded. The purpose of this callback
  * is to output (or play) the decoded PCM audio.
  */
-
-static
-enum mad_flow output(void *data,
+static enum mad_flow output(void *data,
 		     struct mad_header const *header,
 		     struct mad_pcm *pcm)
 {
@@ -135,7 +127,6 @@ enum mad_flow output(void *data,
   mad_fixed_t const *left_ch, *right_ch;
 
   /* pcm->samplerate contains the sampling frequency */
-
   nchannels = pcm->channels;
   nsamples  = pcm->length;
   left_ch   = pcm->samples[0];
@@ -145,7 +136,6 @@ enum mad_flow output(void *data,
     signed int sample;
 
     /* output sample(s) in 16-bit signed little-endian PCM */
-
     sample = scale(*left_ch++);
     putchar((sample >> 0) & 0xff);
     putchar((sample >> 8) & 0xff);
@@ -200,7 +190,6 @@ int decode(unsigned char const *start, unsigned long length)
   int result;
 
   /* initialize our private message structure */
-
   buffer.start  = start;
   buffer.length = length;
 
@@ -211,12 +200,11 @@ int decode(unsigned char const *start, unsigned long length)
 		   error, 0 /* message */);
 
   /* start decoding */
-
   result = mad_decoder_run(&decoder, MAD_DECODER_MODE_SYNC);
 
   /* release the decoder */
-
   mad_decoder_finish(&decoder);
 
   return result;
 }
+
