@@ -1,8 +1,7 @@
 #
 # Makefile for the project
-# Copyright (c) 2017 Jiangsu Midea Clean Electric Appliances Co., Ltd.
 #
-# Author: Rocky Ching <dianhao.zheng@midea.com>
+# Author: Rocky Ching <zdh1021680772@163.com>
 
 TARGET = madplay
 

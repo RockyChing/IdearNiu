@@ -3,20 +3,20 @@
 #
 # Author: Rocky Ching <zdh1021680772@163.com>
 
-TARGET = id3tag_test
+TARGET = wpa_passphrase
 
 CONFIG_HOST = y
 
-SRCDIRS  := .
+
+SRCDIRS  := . ../src/crypto
 SRCDIRS  += $(shell ls -R | grep '^\./.*:$$' | awk '{gsub(":","");print}')
 SRCFIXS  := .c
 
 SRCS := $(foreach d,$(SRCDIRS),$(wildcard $(addprefix $(d)/*,$(SRCFIXS))))
-SRCS += ../../util/log_util.c
 OBJS := $(patsubst %.c,%.o,$(SRCS))
 
 # for debug
-# $(warning source list $(SRCS))
+$(warning source list $(SRCS))
 # for debug
 # $(warning objs list $(OBJS))
 
@@ -32,18 +32,20 @@ LD = $(CROSS_COMPILE)ld
 AR = $(CROSS_COMPILE)ar cr
 STRIP = $(CROSS_COMPILE)strip
 
-CFLAGS = -O2 -Wall -Wno-unused-function
-CFLAGS += -I. -I../../../include
-LIBS  := -lm -lrt -lz
-
+CFLAGS = -I../src/crypto/ -O2 -Wall -Wno-unused-function
+LIBS  := -lpthread -lm -lrt
+# LIBS += -lasound
+# LIBS += -lsqlite3
 LDFLAG += -Wl,-gc-sections
 ifeq ($(CONFIG_HOST), n)
 CFLAGS += -muclibc -march=mips32r2
 LDFLAG += -muclibc
 endif
 
-CFLAGS += -DHAVE_CONFIG_H
-CFLAGS += -DDEBUG -DID3TAG_TEST
+CFLAGS += -I$(abspath ./src)
+CFLAGS += -I$(abspath ./src/utils)
+
+CFLAGS += -DCONFIG_CRYPTO_INTERNAL
 
 $(TARGET): $(OBJS)
 	$(CPLUSPLUS) $(LDFLAG) -o $@ $^ $(LIBS)

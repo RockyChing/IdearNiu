@@ -1,8 +1,7 @@
 #
 # Makefile for the project
-# Copyright (c) 2017 Jiangsu Midea Clean Electric Appliances Co., Ltd.
 #
-# Author: Rocky Ching <dianhao.zheng@midea.com>
+# Author: Rocky Ching <zdh1021680772@163.com>
 
 TARGET = wpa_cli
 
@@ -41,7 +40,6 @@ LDFLAG += -Wl,-gc-sections
 ifeq ($(CONFIG_HOST), n)
 CFLAGS += -muclibc -march=mips32r2
 LDFLAG += -muclibc
-CFLAGS += -DMIDEA_DEBUG
 endif
 
 CFLAGS += -I$(abspath ./src)
