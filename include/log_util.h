@@ -52,7 +52,7 @@ extern void sys_debug_ext(int level, const char *tag, int line_num, const char *
 #define debug(x...)   sys_debug(LOG_DEBUG, x)
 #define info(x...)   sys_debug(LOG_INFO, x)
 #define warning(x...) sys_debug(LOG_WARNING, x)
-#define error(x...)   sys_debug(LOG_ERROR, x)
+#define error(x...)   do {sys_debug(LOG_ERROR, x); abort(); } while (0)
 
 #define ALOGD(x...)   sys_debug_ext(LOG_DEBUG, LOG_TAG, __LINE__, x)
 #define ALOGV(x...)   sys_debug_ext(LOG_INFO, LOG_TAG, __LINE__, x)
