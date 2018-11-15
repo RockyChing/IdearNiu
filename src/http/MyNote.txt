@@ -1,0 +1,29 @@
+sudo apt-get install libgnutls28-dev
+
+./configure --disable-nls --disable-ipv6 --disable-iri --disable-pcre --disable-xattr --disable-ntlm --without-libpsl --without-zlib --without-libiconv-prefix --without-libintl-prefix --without-libunistring-prefix --without-libuuid --with-ssl=openssl --with-openssl
+
+configure: Summary of build options:
+
+  Version:           1.19.5
+  Host OS:           linux-gnu
+  Install prefix:    /usr/local
+  Compiler:          gcc
+  CFlags:              -DHAVE_LIBSSL -DNDEBUG  
+  LDFlags:           
+  Libs:              -lssl -lcrypto   
+  SSL:               openssl
+  Zlib:              no
+  PSL:               no
+  Digest:            yes
+  NTLM:              no
+  OPIE:              yes
+  POSIX xattr:       no
+  Debugging:         yes
+  Assertions:        no
+  Valgrind:          Valgrind testing not enabled
+  Metalink:          no
+  Resolver:          libc, --bind-dns-address and --dns-servers not available
+  GPGME:             no
+  IRI:               no
+  Fuzzing build:     no
+
