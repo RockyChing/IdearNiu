@@ -70,7 +70,7 @@
    because it's not possible to pass a variable number of arguments to
    a macro (in portable C89).  ARGS are like arguments to printf.  */
 
-#define DEBUGP(args) do { IF_DEBUG { debug_logprintf args; } } while (0)
+#define DEBUGP(args) do { IF_DEBUG { printf args; } } while (0)
 
 /* Pick an integer type large enough for file sizes, content lengths,
    and such.  Because today's files can be very large, it should be a

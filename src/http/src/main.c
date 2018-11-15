@@ -19,7 +19,6 @@
 #include "convert.h"
 #include "http.h"               /* for save_cookies */
 #include "ptimer.h"
-#include "version.h"
 #include <getopt.h>
 
 

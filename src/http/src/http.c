@@ -23,7 +23,6 @@
 #include "ssl.h"
 #endif
 #include "convert.h"
-#include "version.h"
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
@@ -1518,7 +1517,7 @@ static int read_response_body (struct http_stat *hs, int sock, FILE *fp, wgint c
 	if (!opt.useragent)                                                  \
 		request_set_header (req, "User-Agent",                           \
 	                    aprintf ("Wget/%s (%s)",                         \
-	                    version_string, "Linux"),                        \
+	                    "Wget 1.19.5", "Linux"),                        \
 	                    rel_value);                                      \
 	else if (*opt.useragent)                                             \
 		request_set_header (req, "User-Agent", opt.useragent, rel_none); \

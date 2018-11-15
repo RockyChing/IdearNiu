@@ -448,7 +448,7 @@ bool socket_ip_address(int sock, ip_address *ip, int endpoint)
 	case AF_INET: {
 		struct sockaddr_in *sa = (struct sockaddr_in *)&storage;
 		ip->data.d4 = sa->sin_addr;
-		debug_logprintf("conaddr is: %s\n", print_address(ip));
+		printf("conaddr is: %s\n", print_address(ip));
 		return true;
 	}
 	default:

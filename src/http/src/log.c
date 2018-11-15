@@ -1,32 +1,3 @@
-/* Messages logging.
-   Copyright (C) 1998-2011, 2015, 2018 Free Software Foundation, Inc.
-
-This file is part of GNU Wget.
-
-GNU Wget is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or
-(at your option) any later version.
-
-GNU Wget is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Wget.  If not, see <http://www.gnu.org/licenses/>.
-
-Additional permission under GNU GPL version 3 section 7
-
-If you modify this program, or any covered work, by linking or
-combining it with the OpenSSL project's OpenSSL library (or a
-modified version of that library), containing parts covered by the
-terms of the OpenSSL or SSLeay licenses, the Free Software Foundation
-grants you additional permission to convey the resulting work.
-Corresponding Source for a non-source form of such a combination
-shall include the source code for the parts of OpenSSL used as well
-as that of the covered work.  */
-
 #include "wget.h"
 
 #include <stdio.h>
@@ -575,60 +546,11 @@ logprintf (enum log_options o, const char *fmt, ...)
   errno = errno_saved;
 }
 
-#ifdef ENABLE_DEBUG
-/* The same as logprintf(), but does anything only if opt.debug is
-   true.  */
-void
-debug_logprintf (const char *fmt, ...)
-{
-  if (opt.debug)
-    {
-      va_list args;
-      struct logvprintf_state lpstate;
-      bool done;
-
-#if 1
-      check_redirect_output ();
-#endif
-      if (inhibit_logging)
-        return;
-
-      xzero (lpstate);
-      do
-        {
-          va_start (args, fmt);
-          done = log_vprintf_internal (&lpstate, fmt, args);
-          va_end (args);
-        }
-      while (!done);
-    }
-}
-#endif /* ENABLE_DEBUG */
-
 /* Open FILE and set up a logging stream.  If FILE cannot be opened,
    exit with status of 1.  */
 void
 log_init (const char *file, bool appendp)
 {
-  if (file)
-    {
-      if (HYPHENP (file))
-        {
-          stdlogfp = stdout;
-          logfp = stdlogfp;
-        }
-      else
-        {
-          filelogfp = fopen (file, appendp ? "a" : "w");
-          if (!filelogfp)
-            {
-              fprintf (stderr, "%s: %s: %s\n", exec_name, file, strerror (errno));
-              exit (0);
-            }
-          logfp = filelogfp;
-        }
-    }
-  else
     {
       /* The log goes to stderr to avoid collisions with the output if
          the user specifies `-O -'.  #### Francois Pinard suggests
@@ -748,7 +670,6 @@ count_nonprint (const char *source)
    cannot garble the screen or guess the local charset and perform
    homographic attacks.
 
-   Of course, the above mandates that escnonprint only be used in
    contexts expected to be ASCII, such as when printing host names,
    URL components, HTTP headers, FTP server messages, and the like.
 
@@ -857,7 +778,6 @@ escnonprint_internal (const char *str, char escape, int base)
    single-line messages cannot use embedded newlines to mimic Wget's
    output and deceive the user.)
 
-   escnonprint doesn't quotes its escape character because it is notf
    meant as a general and reversible quoting mechanism, but as a quick
    way to defang binary junk sent by malicious or buggy servers.
 
@@ -867,12 +787,6 @@ escnonprint_internal (const char *str, char escape, int base)
    buffers to return.  Currently the ring size is 3, which means you
    can print up to three values in the same printf; if more is needed,
    bump RING_SIZE.  */
-
-const char *
-escnonprint (const char *str)
-{
-  return escnonprint_internal (str, '\\', 8);
-}
 
 /* Return a pointer to a static copy of STR with the non-printable
    characters escaped as %XX.  If there are no non-printable
