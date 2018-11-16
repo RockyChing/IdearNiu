@@ -48,9 +48,7 @@ int numurls = 0;
 
 #define BOOLEAN_NEG_MARKER 1024
 
-const char *program_argstring; /* Needed by wget_warc.c. */
 struct ptimer *timer;
-int cleaned_up;
 
 int main (int argc, char **argv)
 {
@@ -58,9 +56,6 @@ int main (int argc, char **argv)
 	int i;
 	int nurl;
 	int argstring_length;
-	bool append_to_log = false;
-
-	cleaned_up = 0; /* do cleanup later */
 
 	timer = ptimer_new ();
 	ptimer_measure (timer);
@@ -73,7 +68,7 @@ int main (int argc, char **argv)
 	/* Construct the arguments string. */
 	for (argstring_length = 1, i = 1; i < argc; i++)
 		argstring_length += strlen (argv[i]) + 3 + 1;
-	program_argstring = p = malloc (argstring_length);
+	p = malloc (argstring_length);
 
 	if (p == NULL) {
 		fprintf(stderr, "Memory allocation problem\n");
@@ -92,8 +87,6 @@ int main (int argc, char **argv)
 	}
 
 	*p = '\0';
-	debug("program_argstring: %s\n", program_argstring);
-
 	/* Load the hard-coded defaults.  */
 	defaults ();
 
@@ -101,54 +94,22 @@ int main (int argc, char **argv)
 	optind = 0;
 
 	nurl = argc - optind;
-	debug("nurl: %d\n", nurl);
+	debug("p: %s\n", p);
 	/* Initialize logging ASAP.  */
-	log_init (opt.lfilename, append_to_log);
+	log_init (NULL, false);
 
 	/* All user options have now been processed, so it's now safe to do
 	interoption dependency checks. */
 
-	if (opt.noclobber && (opt.convert_links || opt.convert_file_only)) {
-		fprintf(stderr,	opt.convert_links ? "Both --no-clobber and --convert-links were specified, only --convert-links will be used.\n" :
-					"Both --no-clobber and --convert-file-only were specified, only --convert-file-only will be used.\n");
-		opt.noclobber = false;
-	}
+	if (!opt.no_dirstruct)
+		opt.dirstruct = 1;      /* normally handled by cmd_spec_recursive() */
 
-  	if (opt.reclevel == 0)
-      	opt.reclevel = INFINITE_RECURSION; /* see recur.h for commentary */
+	debug("opt.verbose: %d\n", opt.verbose);
+	debug("opt.show_progress: %d\n", opt.show_progress);
+    opt.verbose = 1;
+    opt.show_progress = -1;
 
-  	if (opt.spider || opt.delete_after)
-      	opt.no_dirstruct = true;
-
-	if (opt.page_requisites && !opt.recursive) {
-		/* Don't set opt.recursive here because it would confuse the FTP
-			code.  Instead, call retrieve_tree below when either
-			page_requisites or recursive is requested.  */
-		opt.reclevel = 0;
-		if (!opt.no_dirstruct)
-			opt.dirstruct = 1;      /* normally handled by cmd_spec_recursive() */
-	}
-
-  	if (opt.verbose == -1)
-    	opt.verbose = !opt.quiet;
-
-  	if (!opt.verbose && opt.show_progress == -1)
-    	opt.show_progress = false;
-
-  	if (opt.quiet && opt.show_progress == -1)
-    	opt.show_progress = false;
-
-	/* Sanity checks.  */
-	if (opt.verbose && opt.quiet) {
-		fprintf (stderr, "Can't be verbose and quiet at the same time.\n");
-		exit(0);
-	}
-	if (opt.timestamping && opt.noclobber) {
-		fprintf (stderr, "Can't timestamp and not clobber old files at the same time.\n");
-		exit(0);
-	}
-
-	if (!nurl && !opt.input_filename) {
+	if (!nurl) {
 		/* No URL specified.  */
 #if 1
 		fprintf(stderr, "%s: missing URL\n", exec_name);
@@ -189,28 +150,28 @@ int main (int argc, char **argv)
 		int dt, url_err;
 		struct url *url_parsed;
 
-		url_parsed = url_parse (*t, &url_err, true);
+		url_parsed = url_parse(*t, &url_err, true);
 		if (!url_parsed) {
-			char *error = url_error (*t, url_err);
+			char *error = url_error(*t, url_err);
 			logprintf (LOG_NOTQUIET, "%s: %s.\n",*t, error);
 			xfree (error);
 		} else {
-			retrieve_url (url_parsed, *t, &filename, &redirected_URL, NULL, &dt, opt.recursive, true);
+			retrieve_url(url_parsed, *t, &filename, &redirected_URL, NULL, &dt, 0, true);
 		}
 
 		if (opt.delete_after && filename != NULL && file_exists_p (filename, NULL)) {
 			DEBUGP (("Removing file due to --delete-after in main():\n"));
 			logprintf (LOG_VERBOSE, ("Removing %s.\n"), filename);
 			if (unlink (filename))
-				logprintf (LOG_NOTQUIET, "unlink: %s\n", strerror (errno));
+				logprintf (LOG_NOTQUIET, "unlink: %s\n", strerror(errno));
 		}
 
-		xfree (redirected_URL);
-		xfree (filename);
-		url_free (url_parsed);
+		xfree(redirected_URL);
+		xfree(filename);
+		url_free(url_parsed);
 	}
 
-	cleanup ();
-	exit (0);
+	cleanup();
+	exit(0);
 }
 

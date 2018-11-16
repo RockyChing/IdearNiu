@@ -172,12 +172,6 @@ download_child (const struct urlpos *upos, struct url *parent, int depth,
 
   if (blacklist_contains (blacklist, url))
     {
-      if (opt.spider)
-        {
-          char *referrer = url_string (parent, URL_AUTH_HIDE_PASSWD);
-          DEBUGP (("download_child: parent->url is: %s\n",  (parent->url)));
-          xfree (referrer);
-        }
       DEBUGP (("Already on the black list.\n"));
       reason = WG_RR_BLACKLIST;
       goto out;
@@ -205,15 +199,6 @@ download_child (const struct urlpos *upos, struct url *parent, int depth,
      More time- and memory- consuming tests should be put later on
      the list.  */
 
-#ifdef HAVE_SSL
-  if (opt.https_only && u->scheme != SCHEME_HTTPS)
-    {
-      DEBUGP (("Not following non-HTTPS links.\n"));
-      reason = WG_RR_NOTHTTPS;
-      goto out;
-    }
-#endif
-
   /* Determine whether URL under consideration has a HTTP-like scheme. */
   u_scheme_like_http = schemes_are_similar_p (u->scheme, SCHEME_HTTP);
 
@@ -222,7 +207,7 @@ download_child (const struct urlpos *upos, struct url *parent, int depth,
 #ifdef HAVE_SSL
       || u->scheme == SCHEME_FTPS
 #endif
-      ) && opt.follow_ftp))
+      )))
     {
       DEBUGP (("Not following non-HTTP schemes.\n"));
       reason = WG_RR_NONHTTP;
@@ -257,8 +242,7 @@ download_child (const struct urlpos *upos, struct url *parent, int depth,
       && schemes_are_similar_p (u->scheme, start_url_parsed->scheme)
       && 0 == strcasecmp (u->host, start_url_parsed->host)
       && (u->scheme != start_url_parsed->scheme
-          || u->port == start_url_parsed->port)
-      && !(opt.page_requisites && upos->link_inline_p))
+          || u->port == start_url_parsed->port))
     {
       if (!subdir_p (start_url_parsed->dir, u->dir))
         {
@@ -293,17 +277,7 @@ download_child (const struct urlpos *upos, struct url *parent, int depth,
      which can lead to other files that do need to be downloaded.  (-p
      automatically implies non-leaf because with -p we can, if
      necessary, overstep the maximum depth to get the page requisites.)  */
-  if (u->file[0] != '\0'
-      && !(has_html_suffix_p (u->file)
-           /* The exception only applies to non-leaf HTMLs (but -p
-              always implies non-leaf because we can overstep the
-              maximum depth to get the requisites): */
-           && (/* non-leaf */
-               opt.reclevel == INFINITE_RECURSION
-               /* also non-leaf */
-               || depth < opt.reclevel - 1
-               /* -p, which implies non-leaf (see above) */
-               || opt.page_requisites)))
+  if (u->file[0] != '\0' && !(has_html_suffix_p (u->file)))
     {
       if (!acceptable (u->file))
         {
@@ -316,58 +290,13 @@ download_child (const struct urlpos *upos, struct url *parent, int depth,
 
   /* 7. */
   if (schemes_are_similar_p (u->scheme, parent->scheme))
-    if (!opt.spanhost && 0 != strcasecmp (parent->host, u->host))
+    if (0 != strcasecmp (parent->host, u->host))
       {
         DEBUGP (("This is not the same hostname as the parent's (%s and %s).\n",
                  u->host, parent->host));
         reason = WG_RR_SPANNEDHOST;
         goto out;
       }
-
-  /* 8. */
-  if (opt.use_robots && u_scheme_like_http)
-    {
-      struct robot_specs *specs = res_get_specs (u->host, u->port);
-      if (!specs)
-        {
-          char *rfile;
-          if (res_retrieve_file (url, &rfile))
-            {
-              specs = res_parse_from_file (rfile);
-
-              /* Delete the robots.txt file if we chose to either delete the
-                 files after downloading or we're just running a spider. */
-              if (opt.delete_after || opt.spider)
-                {
-                  logprintf (LOG_VERBOSE, ("Removing %s.\n"), rfile);
-                  if (unlink (rfile))
-                      logprintf (LOG_NOTQUIET, "unlink: %s\n",
-                                 strerror (errno));
-                }
-
-              xfree (rfile);
-            }
-          else
-            {
-              /* If we cannot get real specs, at least produce
-                 dummy ones so that we can register them and stop
-                 trying to retrieve them.  */
-              specs = res_parse ("", 0);
-            }
-          res_register_specs (u->host, u->port, specs);
-        }
-
-      /* Now that we have (or don't have) robots.txt specs, we can
-         check what they say.  */
-      if (!res_match_path (specs, u->path))
-        {
-          DEBUGP (("Not following %s because robots.txt forbids it.\n", url));
-          blacklist_add (blacklist, url);
-          reason = WG_RR_ROBOTS;
-          goto out;
-        }
-    }
-
   out:
 
   if (reason == WG_RR_SUCCESS)

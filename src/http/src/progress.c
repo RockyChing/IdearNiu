@@ -1201,7 +1201,7 @@ bar_set_params (char *params)
         } while ((param = strtok (NULL, ":")) != NULL);
     }
 
-  if (((opt.lfilename && opt.show_progress != 1)
+  if (((opt.show_progress != 1)
 #ifdef HAVE_ISATTY
        /* The progress bar doesn't make sense if the output is not a
           TTY -- when logging to file, it is better to review the

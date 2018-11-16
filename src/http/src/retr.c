@@ -783,7 +783,7 @@ retrieve_url (struct url * orig_parsed, const char *origurl, char **file,
     {
       register_download (u->url, local_file);
 
-      if (!opt.spider && redirection_count && 0 != strcmp (origurl, u->url))
+      if (redirection_count && 0 != strcmp (origurl, u->url))
         register_redirection (origurl, u->url);
     }
 
@@ -930,77 +930,6 @@ rotate_backups(const char *fname)
                fname, to, errno, strerror (errno));
 }
 
-static bool no_proxy_match (const char *, const char **);
-
-/* Return the URL of the proxy appropriate for url U.  */
-
-static char *
-getproxy (struct url *u)
-{
-  char *proxy = NULL;
-  char *rewritten_url;
-
-  if (!opt.use_proxy)
-    return NULL;
-  if (no_proxy_match (u->host, (const char **)opt.no_proxy))
-    return NULL;
-
-  switch (u->scheme)
-    {
-    case SCHEME_HTTP:
-      proxy = opt.http_proxy ? opt.http_proxy : getenv ("http_proxy");
-      break;
-#ifdef HAVE_SSL
-    case SCHEME_HTTPS:
-      proxy = opt.https_proxy ? opt.https_proxy : getenv ("https_proxy");
-      break;
-    case SCHEME_FTPS:
-      proxy = opt.ftp_proxy ? opt.ftp_proxy : getenv ("ftps_proxy");
-      break;
-#endif
-    case SCHEME_FTP:
-      proxy = opt.ftp_proxy ? opt.ftp_proxy : getenv ("ftp_proxy");
-      break;
-    case SCHEME_INVALID:
-      break;
-    }
-  if (!proxy || !*proxy)
-    return NULL;
-
-  /* Handle shorthands.  `rewritten_storage' is a kludge to allow
-     getproxy() to return static storage. */
-  rewritten_url = rewrite_shorthand_url (proxy);
-  if (rewritten_url)
-    return rewritten_url;
-
-  return strdup(proxy);
-}
-
-/* Returns true if URL would be downloaded through a proxy. */
-
-bool
-url_uses_proxy (struct url * u)
-{
-  bool ret;
-  char *proxy;
-
-  if (!u)
-    return false;
-  proxy = getproxy (u);
-  ret = proxy != NULL;
-  xfree (proxy);
-  return ret;
-}
-
-/* Should a host be accessed through proxy, concerning no_proxy?  */
-static bool
-no_proxy_match (const char *host, const char **no_proxy)
-{
-  if (!no_proxy)
-    return false;
-  else
-    return sufmatch (no_proxy, host);
-}
 
 /* Set the file parameter to point to the local file string.  */
 void

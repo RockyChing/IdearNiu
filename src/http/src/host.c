@@ -493,7 +493,6 @@ cache_remove (const char *host)
 
    This function caches its result so that, if the same host is passed
    the second time, the addresses are returned without DNS lookup.
-   (Use LH_REFRESH to force lookup, or set opt.dns_cache to 0 to
    globally disable caching.)
 
    The order of the returned addresses is affected by the setting of
@@ -534,11 +533,6 @@ struct address_list *lookup_host (const char *host, int flags)
 		return address_list_from_ipv4_addresses(vec);
 	}
 
-  	/* Cache is normally on, but can be turned off with --no-dns-cache.
-     	Don't cache passive lookups under IPv6.  */
-  	use_cache = opt.dns_cache;
-	log_info("use_cache: %d", use_cache);
-
 	/* Try to find the host in the cache so we don't need to talk to the
 	   resolver.  If LH_REFRESH is requested, remove HOST from the cache instead.  */
 	if (use_cache) {
@@ -573,7 +567,7 @@ struct address_list *lookup_host (const char *host, int flags)
 		int i;
 		int printmax = al->count;
 
-		if (!opt.show_all_dns_entries && printmax > 3)
+		if (printmax > 3)
 			printmax = 3;
 
 		for (i = 0; i < printmax; i++) {
@@ -604,11 +598,6 @@ accept_domain (struct url *u)
   if (opt.domains)
     {
       if (!sufmatch ((const char **)opt.domains, u->host))
-        return false;
-    }
-  if (opt.exclude_domains)
-    {
-      if (sufmatch ((const char **)opt.exclude_domains, u->host))
         return false;
     }
   return true;

@@ -537,13 +537,12 @@ res_retrieve_file (const char *url, char **file)
   uerr_t err;
   char *robots_url = uri_merge (url, RES_SPECS_LOCATION);
   int saved_ts_val = opt.timestamping;
-  int saved_sp_val = opt.spider, url_err;
+  int saved_sp_val = 0, url_err;
   struct url * url_parsed;
 
   logputs (LOG_VERBOSE, ("Loading robots.txt; please ignore errors.\n"));
   *file = NULL;
   opt.timestamping = false;
-  opt.spider       = false;
 
   url_parsed = url_parse (robots_url, &url_err, true);
   if (!url_parsed)
@@ -561,7 +560,6 @@ res_retrieve_file (const char *url, char **file)
     }
 
   opt.timestamping = saved_ts_val;
-  opt.spider       = saved_sp_val;
   xfree (robots_url);
 
   if (err != RETROK && *file != NULL)

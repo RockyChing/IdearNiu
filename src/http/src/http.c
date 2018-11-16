@@ -1871,36 +1871,6 @@ set_file_timestamp (struct http_stat *hs)
   char *local_filename = NULL;
   struct stat st;
 
-  if (opt.backup_converted)
-    /* If -K is specified, we'll act on the assumption that it was specified
-        last time these files were downloaded as well, and instead of just
-        comparing local file X against server file X, we'll compare local
-        file X.orig (if extant, else X) against server file X.  If -K
-        _wasn't_ specified last time, or the server contains files called
-        *.orig, -N will be back to not operating correctly with -k. */
-    {
-      /* Would a single s[n]printf() call be faster?  --dan
-
-          Definitely not.  sprintf() is horribly slow.  It's a
-          different question whether the difference between the two
-          affects a program.  Usually I'd say "no", but at one
-          point I profiled Wget, and found that a measurable and
-          non-negligible amount of time was lost calling sprintf()
-          in url.c.  Replacing sprintf with inline calls to
-          strcpy() and number_to_string() made a difference.
-          --hniksic */
-      memcpy (filename_plus_orig_suffix, hs->local_file, filename_len);
-      memcpy (filename_plus_orig_suffix + filename_len,
-              ORIG_SFX, sizeof (ORIG_SFX));
-
-      /* Try to stat() the .orig file. */
-      if (stat (filename_plus_orig_suffix, &st) == 0)
-        {
-          local_dot_orig_file_exists = true;
-          local_filename = filename_plus_orig_suffix;
-        }
-    }
-
   if (!local_dot_orig_file_exists)
     /* Couldn't stat() <file>.orig, so try to stat() <file>. */
     if (stat (hs->local_file, &st) == 0)
@@ -1950,7 +1920,7 @@ check_file_output (const struct url *u, struct http_stat *hs,
       xfree (local_file);
     }
 
-  hs->temporary = opt.delete_after || opt.spider || !acceptable (hs->local_file);
+  hs->temporary = !acceptable (hs->local_file);
   if (hs->temporary)
     {
       char *tmp = aprintf ("%s.tmp", hs->local_file);
@@ -1961,14 +1931,7 @@ check_file_output (const struct url *u, struct http_stat *hs,
   /* TODO: perform this check only once. */
   if (!hs->existence_checked && file_exists_p (hs->local_file, NULL))
     {
-      if (opt.noclobber)
-        {
-          /* If opt.noclobber is turned on and file already exists, do not
-             retrieve the file. But if the out0put_document was given, then this
-             test was already done and the file didn't exist. Hence the !opt.outputi_document */
-          return RETRUNNEEDED;
-        }
-      else if (!ALLOW_CLOBBER)
+      if (!ALLOW_CLOBBER)
         {
           char *unique = unique_name (hs->local_file, true);
           if (unique != hs->local_file)
@@ -2696,7 +2659,7 @@ retry_with_auth:
 
 
 	/* Return if we have no intention of further downloading.  */
-	if ((!(*dt & RETROKF) && !opt.content_on_error) || head_only || (opt.spider && !opt.recursive)) {
+	if ((!(*dt & RETROKF) && !opt.content_on_error) || head_only) {
 		/* In case the caller cares to look...  */
 		hs->len = 0;
 		hs->res = 0;
@@ -2710,9 +2673,6 @@ retry_with_auth:
 				If not, they can be worked around using
 				`--no-http-keep-alive'.  */
 			CLOSE_FINISH (sock);
-		else if (opt.spider && !opt.recursive)
-			/* we just want to see if the page exists - no downloading required */
-			CLOSE_INVALIDATE (sock);
 		else if (keep_alive	&& skip_short_body (sock, contlen, chunked_transfer_encoding))
 			/* Successfully skipped the body; also keep using the socket. */
 			CLOSE_FINISH (sock);
@@ -2764,7 +2724,7 @@ cleanup:
 static bool
 check_retry_on_http_error (const int statcode)
 {
-  const char *tok = opt.retry_on_http_error;
+  const char *tok = NULL;
   while (tok && *tok)
     {
       if (atoi (tok) == statcode)
@@ -2801,7 +2761,6 @@ http_loop (const struct url *u, struct url *original_url, char **newloc,
   *newloc = NULL;
 
   /* Warn on (likely bogus) wildcard usage in HTTP. */
-  if (opt.ftp_glob && has_wildcards_p (u->path))
     logputs (LOG_VERBOSE, ("Warning: wildcards not supported in HTTP.\n"));
 
   /* Setup hstat struct. */
@@ -2815,25 +2774,13 @@ http_loop (const struct url *u, struct url *original_url, char **newloc,
       got_name = true;
     }
 
-  if (got_name && file_exists_p (hstat.local_file, NULL) && opt.noclobber)
-    {
-      /* If opt.noclobber is turned on and file already exists, do not
-         retrieve the file. But if the outpu0t_document was given, then this
-         test was already done and the file didn't exist. Hence the !opt.outpuit_document */
-      get_file_flags (hstat.local_file, dt);
-      ret = RETROK;
-      goto exit;
-    }
-
   /* Reset the counter. */
   count = 0;
 
   /* Reset the document type. */
   *dt = 0;
 
-  /* Skip preliminary HEAD request if we're not in spider mode.  */
-  if (!opt.spider)
-    send_head_first = false;
+   send_head_first = false;
 
   /* Send preliminary HEAD request if --content-disposition and -c are used
      together.  */
@@ -2868,10 +2815,6 @@ http_loop (const struct url *u, struct url *original_url, char **newloc,
 
       /* Get the current time string.  */
       tms = datetime_str (time (NULL));
-
-      if (opt.spider && !got_head)
-        logprintf (LOG_VERBOSE,
-			  ("Spider mode enabled. Check if remote file exists.\n"));
 
       /* Print fetch message, if opt.verbose.  */
       if (opt.verbose)
@@ -3037,19 +2980,6 @@ http_loop (const struct url *u, struct url *original_url, char **newloc,
               got_head = true;
               continue;
             }
-          /* Maybe we should always keep track of broken links, not just in
-           * spider mode.
-           * Don't log error if it was UTF-8 encoded because we will try
-           * once unencoded. */
-          else if (opt.spider)
-            {
-              /* #### Again: ugly ugly ugly! */
-              if (!hurl)
-                hurl = url_string (u, URL_AUTH_HIDE_PASSWD);
-              //nonexisting_url (hurl);
-              logprintf (LOG_NOTQUIET, ("\
-Remote file does not exist -- broken link!!!\n"));
-            }
           else if (check_retry_on_http_error (hstat.statcode))
             {
               printwhat (count, opt.ntry);
@@ -3067,7 +2997,7 @@ Remote file does not exist -- broken link!!!\n"));
         }
 
       /* Did we get the time-stamp? */
-      if (!got_head || (opt.spider && !opt.recursive))
+      if (!got_head)
         {
           got_head = true;    /* no more time-stamping */
 
@@ -3134,45 +3064,6 @@ Last-modified header invalid -- time-stamp ignored.\n"));
 
                   /* free_hstat (&hstat); */
                   hstat.timestamp_checked = true;
-                }
-
-              if (opt.spider)
-                {
-                  bool finished = true;
-                  if (opt.recursive)
-                    {
-                      if ((*dt & TEXTHTML) || (*dt & TEXTCSS))
-                        {
-                          logputs (LOG_VERBOSE, "Remote file exists and could contain links to other resources -- retrieving.\n\n");
-                          finished = false;
-                        }
-                      else
-                        {
-                          logprintf (LOG_VERBOSE, "Remote file exists but does not contain any link -- not retrieving.\n\n");
-                          ret = RETROK; /* RETRUNNEEDED is not for caller. */
-                        }
-                    }
-                  else
-                    {
-                      if ((*dt & TEXTHTML) || (*dt & TEXTCSS))
-                        {
-                          logprintf (LOG_VERBOSE, "Remote file exists and could contain further links,\n\
-but recursion is disabled -- not retrieving.\n\n");
-                        }
-                      else
-                        {
-                          logprintf (LOG_VERBOSE, "Remote file exists.\n\n");
-                        }
-                      ret = RETROK; /* RETRUNNEEDED is not for caller. */
-                    }
-
-                  if (finished)
-                    {
-                      logprintf (LOG_NONVERBOSE, "%s URL: %s %2d %s\n",
-                                 tms, u->url, hstat.statcode,
-                                 hstat.message ? hstat.message : "");
-                      goto exit;
-                    }
                 }
 
               got_name = true;

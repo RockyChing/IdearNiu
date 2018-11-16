@@ -20,7 +20,7 @@
 /* The flags that allow clobbering the file (opening with "wb").
    Defined here to avoid repetition later.  #### This will require
    rework.  */
-#define ALLOW_CLOBBER (opt.noclobber || opt.always_rest || opt.timestamping \
+#define ALLOW_CLOBBER (opt.always_rest || opt.timestamping \
                   || opt.dirstruct || opt.backups > 0)
 
 /* Specifies how, or whether, user auth information should be included

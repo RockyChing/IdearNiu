@@ -239,16 +239,6 @@ saved_append (const char *s)
     }
 }
 
-/* Check X against opt.verbose and opt.quiet.  The semantics is as
-   follows:
-
-   * LOG_ALWAYS - print the message unconditionally;
-
-   * LOG_NOTQUIET - print the message if opt.quiet is non-zero;
-
-   * LOG_NONVERBOSE - print the message if opt.verbose is zero;
-
-   * LOG_VERBOSE - print the message if opt.verbose is non-zero.  */
 #define CHECK_VERBOSE(x)                        \
   switch (x)                                    \
     {                                           \
@@ -259,11 +249,9 @@ saved_append (const char *s)
     case LOG_ALWAYS:                            \
       break;                                    \
     case LOG_NOTQUIET:                          \
-      if (opt.quiet)                            \
-        return;                                 \
       break;                                    \
     case LOG_NONVERBOSE:                        \
-      if (opt.verbose || opt.quiet)             \
+      if (opt.verbose)             \
         return;                                 \
       break;                                    \
     case LOG_VERBOSE:                           \
@@ -868,7 +856,7 @@ check_redirect_output (void)
    * it was permanent.
    * If there was no SIGHUP or SIGUSR1 and shell is interactive
    * we check if process is fg or bg before every line is printed.*/
-  if (!redirect_request_signal_name && shell_is_interactive && !opt.lfilename)
+  if (!redirect_request_signal_name && shell_is_interactive)
     {
       pid_t foreground_pgrp = tcgetpgrp (STDIN_FILENO);
 

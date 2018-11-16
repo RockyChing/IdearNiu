@@ -882,7 +882,7 @@ url_parse (const char *url, int *error, bool percent_encode)
   if (fragment_b)
     u->fragment = strdupdelim (fragment_b, fragment_e);
 
-  if (opt.enable_iri || path_modified || u->fragment || host_modified || path_b == path_e)
+  if (path_modified || u->fragment || host_modified || path_b == path_e)
     {
       /* If we suspect that a transformation has rendered what
          url_string might return different from URL_ENCODED, rebuild
@@ -1564,26 +1564,7 @@ url_file_name (const struct url *u, char *replaced_filename)
           if (temp_fnres.tail)
             append_char ('/', &temp_fnres);
           append_string (supported_schemes[u->scheme].name, &temp_fnres);
-        }
-      if (opt.add_hostdir)
-        {
-          if (temp_fnres.tail)
-            append_char ('/', &temp_fnres);
-          if (0 != strcmp (u->host, ".."))
-            append_string (u->host, &temp_fnres);
-          else
-            /* Host name can come from the network; malicious DNS may
-               allow ".." to be resolved, causing us to write to
-               "../<file>".  Defang such host names.  */
-            append_string ("%2E%2E", &temp_fnres);
-          if (u->port != scheme_default_port (u->scheme))
-            {
-              char portstr[24];
-              number_to_string (portstr, u->port);
-              append_char (FN_PORT_SEP, &temp_fnres);
-              append_string (portstr, &temp_fnres);
-            }
-        }
+      	}
 
       append_dir_structure (u, &temp_fnres);
     }

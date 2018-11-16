@@ -408,57 +408,6 @@ datetime_str (time_t t)
   return fmttime(t, "%Y-%m-%d %H:%M:%S");
 }
 
-/* The Windows versions of the following two functions are defined in
-   mswindows.c. On MSDOS this function should never be called. */
-bool
-fork_to_background (void)
-{
-  pid_t pid;
-  /* Whether we arrange our own version of opt.lfilename here.  */
-  bool logfile_changed = false;
-
-  if (!opt.lfilename && (!opt.quiet || opt.server_response))
-    {
-      /* We must create the file immediately to avoid either a race
-         condition (which arises from using unique_name and failing to
-         use fopen_excl) or lying to the user about the log file name
-         (which arises from using unique_name, printing the name, and
-         using fopen_excl later on.)  */
-      FILE *new_log_fp = unique_create (DEFAULT_LOGFILE, false, &opt.lfilename);
-      if (new_log_fp)
-        {
-          logfile_changed = true;
-          fclose (new_log_fp);
-        }
-    }
-  pid = fork ();
-  if (pid < 0)
-    {
-      /* parent, error */
-      perror ("fork");
-      exit (0);
-    }
-  else if (pid != 0)
-    {
-      /* parent, no error */
-      printf ("Continuing in background, pid %d.\n", (int) pid);
-      if (logfile_changed)
-        printf ("Output will be written to %s.\n", (opt.lfilename));
-      exit (0);                 /* #### should we use _exit()? */
-    }
-
-  /* child: give up the privileges and keep running. */
-  setsid ();
-  if (freopen ("/dev/null", "r", stdin) == NULL)
-    DEBUGP (("Failed to redirect stdin to /dev/null.\n"));
-  if (freopen ("/dev/null", "w", stdout) == NULL)
-    DEBUGP (("Failed to redirect stdout to /dev/null.\n"));
-  if (freopen ("/dev/null", "w", stderr) == NULL)
-    DEBUGP (("Failed to redirect stderr to /dev/null.\n"));
-
-  return logfile_changed;
-}
-
 /* Checks if FILE is a symbolic link, and removes it if it is.  Does
    nothing under MS-Windows.  */
 int
@@ -1786,8 +1735,6 @@ determine_screen_width (void)
   int fd;
   struct winsize wsz;
 
-  if (opt.lfilename != NULL && opt.show_progress != 1)
-    return 0;
 
   fd = fileno (stderr);
   if (ioctl (fd, TIOCGWINSZ, &wsz) < 0)

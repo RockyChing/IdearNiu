@@ -122,13 +122,13 @@ resolve_bind_address (struct sockaddr *sa)
     }
   called = true;
 
-  al = lookup_host (opt.bind_address, LH_BIND | LH_SILENT);
+  al = lookup_host (NULL, LH_BIND | LH_SILENT);
   if (!al)
     {
       /* #### We should be able to print the error message here. */
       logprintf (LOG_NOTQUIET,
                  ("%s: unable to resolve bind address %s; disabling bind.\n"),
-                 exec_name, opt.bind_address);
+                 exec_name, NULL);
       should_bind = false;
       return false;
     }
@@ -229,17 +229,6 @@ int connect_to_ip(const ip_address *ip, int port, const char *print)
 #endif
 		/* When we add limit_rate support for writing, which is useful
 			for POST, we should also set SO_SNDBUF here.  */
-		}
-
-		if (opt.bind_address) {
-			/* Bind the client side of the socket to the requested
-				address.  */
-			struct sockaddr_storage bind_ss;
-			struct sockaddr *bind_sa = (struct sockaddr *)&bind_ss;
-			if (resolve_bind_address (bind_sa)) {
-				if (bind (sock, bind_sa, sockaddr_size (bind_sa)) < 0)
-					goto err;
-			}
 		}
 
 		/* Connect the socket to the remote endpoint.  */
@@ -517,7 +506,6 @@ retryable_socket_connect_error (int err)
       )
     return false;
 
-  if (!opt.retry_connrefused)
     if (err == ECONNREFUSED
 #ifdef ENETUNREACH
         || err == ENETUNREACH   /* network is unreachable */
