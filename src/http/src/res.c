@@ -547,14 +547,14 @@ res_retrieve_file (const char *url, char **file)
   url_parsed = url_parse (robots_url, &url_err, true);
   if (!url_parsed)
     {
-      char *error = url_error (robots_url, url_err);
-      logprintf (LOG_NOTQUIET, "%s: %s.\n", robots_url, error);
-      xfree (error);
+      //char *error = url_error (robots_url, url_err);
+      //logprintf (LOG_NOTQUIET, "%s: %s.\n", robots_url, error);
+     // xfree (error);
       err = URLERROR;
     }
   else
     {
-      err = retrieve_url (url_parsed, robots_url, file, NULL, NULL, NULL,
+      err = retrieve_url(url_parsed, robots_url, file, NULL, NULL,
                           false, false);
       url_free(url_parsed);
     }
@@ -601,6 +601,3 @@ res_cleanup (void)
     }
 }
 
-/*
- * vim: et ts=2 sw=2
- */

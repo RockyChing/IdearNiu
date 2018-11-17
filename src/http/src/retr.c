@@ -1,33 +1,3 @@
-/* File retrieval.
-   Copyright (C) 1996-2011, 2014-2015, 2018 Free Software Foundation,
-   Inc.
-
-This file is part of GNU Wget.
-
-GNU Wget is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or (at
-your option) any later version.
-
-GNU Wget is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Wget.  If not, see <http://www.gnu.org/licenses/>.
-
-Additional permission under GNU GPL version 3 section 7
-
-If you modify this program, or any covered work, by linking or
-combining it with the OpenSSL project's OpenSSL library (or a
-modified version of that library), containing parts covered by the
-terms of the OpenSSL or SSLeay licenses, the Free Software Foundation
-grants you additional permission to convey the resulting work.
-Corresponding Source for a non-source form of such a combination
-shall include the source code for the parts of OpenSSL used as well
-as that of the covered work.  */
-
 #include "wget.h"
 
 #include <stdio.h>
@@ -47,6 +17,7 @@ as that of the covered work.  */
 #include "hash.h"
 #include "convert.h"
 #include "ptimer.h"
+#include "progress.h"
 
 /* Total size of downloaded files.  Used to enforce quota.  */
 SUM_SIZE_INT total_downloaded_bytes;
@@ -644,28 +615,6 @@ calc_rate (wgint bytes, double secs, int *units)
 }
 
 
-#define SUSPEND_METHOD do {                     \
-  method_suspended = true;                      \
-  saved_body_data = opt.body_data;              \
-  saved_body_file_name = opt.body_file;         \
-  saved_method = opt.method;                    \
-  opt.body_data = NULL;                         \
-  opt.body_file = NULL;                         \
-  opt.method = NULL;                            \
-} while (0)
-
-#define RESTORE_METHOD do {                             \
-  if (method_suspended)                                 \
-    {                                                   \
-      opt.body_data = saved_body_data;                  \
-      opt.body_file = saved_body_file_name;             \
-      opt.method = saved_method;                        \
-      method_suspended = false;                         \
-    }                                                   \
-} while (0)
-
-static char *getproxy (struct url *);
-
 /* Retrieve the given URL.  Decides which loop to call -- HTTP, FTP,
    FTP, proxy, etc.  */
 
@@ -698,124 +647,55 @@ static void dump_url_struct(struct url *u)
 	}
 }
 
-uerr_t
-retrieve_url (struct url * orig_parsed, const char *origurl, char **file,
+uerr_t retrieve_url (struct url * orig_parsed, char **file,
               char **newloc, const char *refurl, int *dt, bool recursive, bool register_status)
 {
-  uerr_t result;
-  char *url;
-  bool location_changed;
-  bool iri_fallbacked = 0;
-  int dummy;
-  char *mynewloc;
-  struct url *u = orig_parsed;
-  char *local_file = NULL;
-  int redirection_count = 0;
+	uerr_t result;
+	int dummy;
+	char *mynewloc;
+	struct url *u = orig_parsed;
+	char *local_file = NULL;
 
-  bool method_suspended = false;
-  char *saved_body_data = NULL;
-  char *saved_method = NULL;
-  char *saved_body_file_name = NULL;
+	/* If dt is NULL, use local storage.  */
+	if (!dt) {
+		dt = &dummy;
+		dummy = 0;
+	}
 
-  /* If dt is NULL, use local storage.  */
-  if (!dt)
-    {
-      dt = &dummy;
-      dummy = 0;
-    }
-  url = xstrdup (origurl);
-  if (newloc)
-    *newloc = NULL;
-  if (file)
-    *file = NULL;
+	if (newloc)
+		*newloc = NULL;
+	if (file)
+		*file = NULL;
 
-  if (!refurl)
-    refurl = opt.referer;
+	if (!refurl)
+		refurl = opt.referer;
 
- redirected:
-  /* (also for IRI fallbacking) */
 
-  result = NOCONERROR;
-  mynewloc = NULL;
-  xfree(local_file);
+	result = NOCONERROR;
+	mynewloc = NULL;
 
-  if (u->scheme == SCHEME_HTTP
+	if (u->scheme == SCHEME_HTTP
 #ifdef HAVE_SSL
-      || u->scheme == SCHEME_HTTPS
+		|| u->scheme == SCHEME_HTTPS
 #endif
-    ) {
-      result = http_loop (u, orig_parsed, &mynewloc, &local_file, refurl, dt);
-    }
+			) {
+		result = http_loop(u, orig_parsed, &mynewloc, &local_file, refurl, dt);
+	}
 
-  location_changed = (result == NEWLOCATION || result == NEWLOCATION_KEEP_POST);
-  debug("location_changed: %d", location_changed);
-    {
-      xfree(mynewloc);
-    }
+	xfree(mynewloc);
+	if (file)
+		*file = local_file ? local_file : NULL;
+	else
+		xfree(local_file);
 
-  /* Try to not encode in UTF-8 if fetching failed */
-  if (!(*dt & RETROKF))
-    {
-    	debug("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\n");
-      if (orig_parsed != u)
-        {
-          url_free (u);
-        }
-      u = url_parse (origurl, NULL, true);
-      if (u)
-        {
-          if (strcmp(u->url, orig_parsed->url))
-            {
-              DEBUGP (("[IRI fallbacking to non-utf8 for %s\n", (url)));
-              xfree (url);
-              url = xstrdup (u->url);
-              iri_fallbacked = 1;
-              goto redirected;
-            }
-          else
-              DEBUGP (("[Needn't fallback to non-utf8 for %s\n", (url)));
-        }
-      else
-          DEBUGP (("[Couldn't fallback to non-utf8 for %s\n", (url)));
-    }
+	if (orig_parsed != u) {
+		url_free (u);
+	}
 
-  if (local_file && u && (*dt & RETROKF || opt.content_on_error))
-    {
-      register_download (u->url, local_file);
+	if (newloc)
+		*newloc = NULL;
 
-      if (redirection_count && 0 != strcmp (origurl, u->url))
-        register_redirection (origurl, u->url);
-    }
-
-  if (file)
-    *file = local_file ? local_file : NULL;
-  else
-    xfree (local_file);
-
-  if (orig_parsed != u)
-    {
-      url_free (u);
-    }
-
-  if (redirection_count || iri_fallbacked)
-    {
-      if (newloc)
-        *newloc = url;
-      else
-        xfree (url);
-    }
-  else
-    {
-      if (newloc)
-        *newloc = NULL;
-      xfree (url);
-    }
-
-  RESTORE_METHOD;
-
-  if (register_status){}
-
-  return result;
+	return result;
 }
 
 /* Find the URLs in the file and call retrieve_url() for each of them.
@@ -938,19 +818,3 @@ set_local_file (const char **file, const char *default_file)
     *file = default_file;
 }
 
-/* Return true for an input file's own URL, false otherwise.  */
-bool
-input_file_url (const char *input_file)
-{
-  static bool first = true;
-
-  if (input_file
-      && url_has_scheme (input_file)
-      && first)
-    {
-      first = false;
-      return true;
-    }
-  else
-    return false;
-}

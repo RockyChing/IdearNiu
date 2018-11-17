@@ -21,7 +21,7 @@
    Defined here to avoid repetition later.  #### This will require
    rework.  */
 #define ALLOW_CLOBBER (opt.always_rest || opt.timestamping \
-                  || opt.dirstruct || opt.backups > 0)
+                  || opt.backups > 0)
 
 /* Specifies how, or whether, user auth information should be included
  * in URLs regenerated from URL parse structures. */
@@ -78,7 +78,6 @@ void url_unescape (char *);
 void url_unescape_except_reserved (char *);
 
 struct url *url_parse (const char *, int *, bool percent_encode);
-char *url_error (const char *, int);
 char *url_full_path (const struct url *);
 void url_set_dir (struct url *, const char *);
 void url_set_file (struct url *, const char *);

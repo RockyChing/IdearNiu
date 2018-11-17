@@ -123,7 +123,6 @@ void stable_sort (void *, size_t, size_t, int (*) (const void *, const void *));
 
 const char *print_decimal (double);
 
-long get_max_length (const char *path, int length, int name);
 
 #ifndef HAVE_STRLCPY
 size_t strlcpy (char *dst, const char *src, size_t size);

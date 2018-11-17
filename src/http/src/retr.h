@@ -59,7 +59,7 @@ typedef const char *(*hunk_terminator_t) (const char *, const char *, int);
 char *fd_read_hunk (int, hunk_terminator_t, long, long);
 char *fd_read_line (int);
 
-uerr_t retrieve_url (struct url *, const char *, char **, char **,
+uerr_t retrieve_url (struct url *, char **, char **,
                      const char *, int *, bool, bool);
 uerr_t retrieve_from_file (const char *, bool, int *);
 
@@ -73,7 +73,5 @@ void rotate_backups (const char *);
 
 
 void set_local_file (const char **, const char *);
-
-bool input_file_url (const char *);
 
 #endif /* RETR_H */

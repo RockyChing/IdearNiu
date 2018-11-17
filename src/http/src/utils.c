@@ -431,27 +431,22 @@ remove_link (const char *file)
 bool
 file_exists_p (const char *filename, file_stats_t *fstats)
 {
-  struct stat buf;
-  errno = 0;
-  if (stat (filename, &buf) == 0 && S_ISREG(buf.st_mode) &&
-              (((S_IRUSR & buf.st_mode) && (getuid() == buf.st_uid))  ||
-               ((S_IRGRP & buf.st_mode) && group_member(buf.st_gid))  ||
-                (S_IROTH & buf.st_mode))) {
-    if (fstats != NULL)
-    {
-      fstats->access_err = 0;
-      fstats->st_ino = buf.st_ino;
-      fstats->st_dev = buf.st_dev;
-    }
-    return true;
-  }
-  else
-  {
-    if (fstats != NULL)
-      fstats->access_err = (errno == 0 ? EACCES : errno);
-    errno = 0;
-    return false;
-  }
+	struct stat buf;
+	errno = 0;
+	if (stat (filename, &buf) == 0 && S_ISREG(buf.st_mode) && (((S_IRUSR & buf.st_mode) && (getuid() == buf.st_uid))  ||
+			((S_IRGRP & buf.st_mode) && group_member(buf.st_gid)) || (S_IROTH & buf.st_mode))) {
+		if (fstats != NULL) {
+			fstats->access_err = 0;
+			fstats->st_ino = buf.st_ino;
+			fstats->st_dev = buf.st_dev;
+		}
+		return true;
+	} else {
+		if (fstats != NULL)
+			fstats->access_err = (errno == 0 ? EACCES : errno);
+		errno = 0;
+		return false;
+	}
 }
 
 /* Returns 0 if PATH is a directory, 1 otherwise (any kind of file).
@@ -2295,60 +2290,6 @@ print_decimal (double number)
   return buf;
 }
 
-/* Get the maximum name length for the given path. */
-/* Return 0 if length is unknown. */
-long
-get_max_length (const char *path, int length, int name)
-{
-  long ret;
-  char *p, *d;
-
-  /* Make a copy of the path that we can modify. */
-  p = path ? strdupdelim (path, path + length) : strdup ("");
-
-  for (;;)
-    {
-      errno = 0;
-      /* For an empty path query the current directory. */
-#if HAVE_PATHCONF
-      ret = pathconf (*p ? p : ".", name);
-      if (!(ret < 0 && errno == ENOENT))
-        break;
-#else
-      ret = PATH_MAX;
-#endif
-
-      /* The path does not exist yet, but may be created. */
-      /* Already at current or root directory, give up. */
-      if (!*p || strcmp (p, "/") == 0)
-        break;
-
-      /* Remove one directory level and try again. */
-      d = strrchr (p, '/');
-      if (d == p)
-        p[1] = '\0';  /* check root directory */
-      else if (d)
-        *d = '\0';  /* remove last directory part */
-      else
-        *p = '\0';  /* check current directory */
-    }
-
-  xfree (p);
-
-  if (ret < 0)
-    {
-      /* pathconf() has a message for us. */
-      if (errno != 0)
-          perror ("pathconf");
-
-      /* If (errno == 0) then there is no max length.
-         Even on error return 0 so the caller can continue. */
-      return 0;
-    }
-
-  return ret;
-}
-
 void
 wg_hex_to_string (char *str_buffer, const char *hex_buffer, size_t hex_len)
 {
@@ -2625,6 +2566,6 @@ void *xmemdup(void const *p, size_t s)
 
 char *xstrdup(char const *string)
 {
-	return xmemdup(string, strlen (string) + 1);
+	return xmemdup(string, strlen(string) + 1);
 }
 

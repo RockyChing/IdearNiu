@@ -14,7 +14,6 @@ struct options {
 	                               directory.  */
 	bool dirstruct;               /* Do we build the directory structure
 	                               as we go along? */
-	bool no_dirstruct;            /* Do we hate dirstruct? */
 	int cut_dirs;                 /* Number of directory components to cut. */
 	bool add_hostdir;             /* Do we add hostname directory? */
 	bool protocol_directories;    /* Whether to prepend "http"/"ftp" to dirs. */
@@ -25,9 +24,6 @@ struct options {
 	char *choose_config;          /* Specified config file */
 	bool noconfig;                /* Ignore all config files? */
 	bool force_html;              /* Is the input file an HTML file? */
-
-	char *default_page;           /* Alternative default page (index file) */
-
 
 	char **accepts;               /* List of patterns to accept. */
 	char **rejects;               /* List of patterns to reject. */
@@ -48,15 +44,11 @@ struct options {
 	bool always_rest;             /* Always use REST. */
 	wgint start_pos;              /* Start position of a download. */
 	char *ftp_user;               /* FTP username */
-	char *ftp_passwd;             /* FTP password */
-	bool netrc;                   /* Whether to read .netrc. */
-	bool ftp_glob;                /* FTP globbing */
 
 	char *http_user;              /* HTTP username. */
 	char *http_passwd;            /* HTTP password. */
 	bool http_keep_alive;         /* whether we use keep-alive */
 
-	char *ftp_proxy, *https_proxy;
 	char **no_proxy;
 	char *base_href;
 	char *progress_type;          /* progress indicator type. */
@@ -91,25 +83,15 @@ struct options {
 
 	int backups;                  /* Are numeric backups made? */
 
-	char *useragent;              /* User-Agent string, which can be set
-	                               to something other than Wget. */
 	char *referer;                /* Naughty Referer, which can be
 	                               set to something other than
 	                               NULL. */
-
-	bool htmlify;                 /* Do we HTML-ify the OS-dependent
-	                               listings? */
 
 	char *dot_style;
 	wgint dot_bytes;              /* How many bytes in a printing
 	                               dot. */
 	int dots_in_line;             /* How many dots in one line. */
 	int dot_spacing;              /* How many dots between spacings. */
-
-	bool delete_after;            /* Whether the files will be deleted
-	                               after download. */
-
-
 
 #ifdef HAVE_SSL
 	enum {
@@ -146,18 +128,8 @@ struct options {
 	char *tls_ciphers_string;
 #endif /* HAVE_SSL */
 
-	bool cookies;                 /* whether cookies are used. */
-	char *cookies_input;          /* file we're loading the cookies from. */
-	char *cookies_output;         /* file we're saving the cookies to. */
-	bool keep_badhash;            /* Keep files with checksum mismatch. */
-	bool keep_session_cookies;    /* whether session cookies should be
-	                               saved and loaded. */
 
-	char *post_data;              /* POST query string */
-	char *post_file_name;         /* File to post */
 	char *method;                 /* HTTP Method to use in Header */
-	char *body_data;              /* HTTP Method Data String */
-	char *body_file;              /* HTTP Method File */
 
 	enum {
 		restrict_unix,
@@ -188,12 +160,9 @@ struct options {
 	                               waiting for a challenge. */
 
 
-	bool trustservernames;
-
 	bool useservertimestamps;     /* Update downloaded files' timestamps to
 	                               match those on server? */
 	bool report_bps;              /*Output bandwidth in bits format*/
-
 
 };
 

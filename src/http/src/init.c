@@ -111,7 +111,6 @@ cleanup (void)
 
   xfree (opt.choose_config);
   xfree (opt.dir_prefix);
-  xfree (opt.default_page);
   free_vec (opt.accepts);
   free_vec (opt.rejects);
   free_vec ((char **)opt.excludes);
@@ -121,12 +120,9 @@ cleanup (void)
   free_vec (opt.ignore_tags);
   xfree (opt.progress_type);
   xfree (opt.ftp_user);
-  xfree (opt.ftp_passwd);
-  xfree (opt.https_proxy);
   free_vec (opt.no_proxy);
   xfree (opt.proxy_user);
   xfree (opt.proxy_passwd);
-  xfree (opt.useragent);
   xfree (opt.referer);
   xfree (opt.http_user);
   xfree (opt.http_passwd);
@@ -139,12 +135,9 @@ cleanup (void)
   xfree (opt.crl_file);
   xfree (opt.pinnedpubkey);
 # endif
-  xfree (opt.cookies_input);
-  xfree (opt.cookies_output);
   xfree (opt.base_href);
   xfree (opt.method);
   xfree (opt.post_file_name);
-  xfree (opt.post_data);
   xfree (opt.body_data);
   xfree (opt.body_file);
   xfree (opt.use_askpass);

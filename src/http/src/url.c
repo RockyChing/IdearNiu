@@ -13,48 +13,52 @@
 
 #include <langinfo.h>
 
+  /* Get the optional parts of URL, each part being delimited by
+     current location and the position of the next separator.  */
+#define get_url_part(sepchar, var) do {                         \
+	if (*p == sepchar)                                          \
+		var##_b = ++p, var##_e = p = strpbrk_or_eos(p, seps);  \
+	++seps;                                                     \
+} while (0)
+
 enum {
-  scm_disabled = 1,             /* for https when OpenSSL fails to init. */
-  scm_has_params = 2,           /* whether scheme has ;params */
-  scm_has_query = 4,            /* whether scheme has ?query */
-  scm_has_fragment = 8          /* whether scheme has #fragment */
+	scm_disabled = 1,             /* for https when OpenSSL fails to init. */
+	scm_has_params = 2,           /* whether scheme has ;params */
+	scm_has_query = 4,            /* whether scheme has ?query */
+	scm_has_fragment = 8          /* whether scheme has #fragment */
 };
 
-struct scheme_data
-{
-  /* Short name of the scheme, such as "http" or "ftp". */
-  const char *name;
-  /* Leading string that identifies the scheme, such as "https://". */
-  const char *leading_string;
-  /* Default port of the scheme when none is specified. */
-  int default_port;
-  /* Various flags. */
-  int flags;
+struct scheme_data {
+	/* Short name of the scheme, such as "http" or "ftp". */
+	const char *name;
+	/* Leading string that identifies the scheme, such as "https://". */
+	const char *leading_string;
+	/* Default port of the scheme when none is specified. */
+	int default_port;
+	/* Various flags. */
+	int flags;
 };
 
 /* Supported schemes: */
-static struct scheme_data supported_schemes[] =
-{
-  { "http",     "http://",  DEFAULT_HTTP_PORT,  scm_has_query|scm_has_fragment },
+static struct scheme_data supported_schemes[] = {
+	{ "http",     "http://",  DEFAULT_HTTP_PORT,  scm_has_query|scm_has_fragment },
 #ifdef HAVE_SSL
-  { "https",    "https://", DEFAULT_HTTPS_PORT, scm_has_query|scm_has_fragment },
-#endif
-  { "ftp",      "ftp://",   DEFAULT_FTP_PORT,   scm_has_params|scm_has_fragment },
-#ifdef HAVE_SSL
-  /*
-   * Explicit FTPS uses the same port as FTP.
-   * Implicit FTPS has its own port (990), but it is disabled by default.
-   */
-  { "ftps",     "ftps://",  DEFAULT_FTP_PORT,  scm_has_params|scm_has_fragment },
+	{ "https",    "https://", DEFAULT_HTTPS_PORT, scm_has_query|scm_has_fragment },
 #endif
 
-  /* SCHEME_INVALID */
-  { NULL,       NULL,       -1,                 0 }
+	{ "ftp",      "ftp://",   DEFAULT_FTP_PORT,   scm_has_params|scm_has_fragment },
+#ifdef HAVE_SSL
+	/*
+	 * Explicit FTPS uses the same port as FTP.
+	 * Implicit FTPS has its own port (990), but it is disabled by default.
+	 */
+	{ "ftps",     "ftps://",  DEFAULT_FTP_PORT,  scm_has_params|scm_has_fragment },
+#endif
+
+	/* SCHEME_INVALID */
+	{ NULL,       NULL,       -1,                 0 }
 };
 
-/* Forward declarations: */
-
-static bool path_simplify (enum url_scheme, char *);
 
 /* Support for escaping and unescaping of URL strings.  */
 
@@ -130,37 +134,32 @@ static const unsigned char urlchr_table[256] =
 #undef U
 #undef RU
 
-static void
-url_unescape_1 (char *s, unsigned char mask)
+static void url_unescape_1 (char *s, unsigned char mask)
 {
-  char *t = s;                  /* t - tortoise */
-  char *h = s;                  /* h - hare     */
+	char *t = s;                  /* t - tortoise */
+	char *h = s;                  /* h - hare     */
 
-  for (; *h; h++, t++)
-    {
-      if (*h != '%')
-        {
-        copychar:
-          *t = *h;
-        }
-      else
-        {
-          char c;
-          /* Do nothing if '%' is not followed by two hex digits. */
-          if (!h[1] || !h[2] || !(isxdigit (h[1]) && isxdigit (h[2])))
-            goto copychar;
-          c = X2DIGITS_TO_NUM (h[1], h[2]);
-          if (urlchr_test(c, mask))
-            goto copychar;
-          /* Don't unescape %00 because there is no way to insert it
-             into a C string without effectively truncating it. */
-          if (c == '\0')
-            goto copychar;
-          *t = c;
-          h += 2;
-        }
-    }
-  *t = '\0';
+	for (; *h; h++, t++) {
+		if (*h != '%') {
+		copychar:
+			*t = *h;
+		} else {
+			char c;
+			/* Do nothing if '%' is not followed by two hex digits. */
+			if (!h[1] || !h[2] || !(isxdigit (h[1]) && isxdigit (h[2])))
+				goto copychar;
+			c = X2DIGITS_TO_NUM (h[1], h[2]);
+			if (urlchr_test(c, mask))
+				goto copychar;
+			/* Don't unescape %00 because there is no way to insert it
+			into a C string without effectively truncating it. */
+			if (c == '\0')
+				goto copychar;
+			*t = c;
+			h += 2;
+		}
+	}
+	*t = '\0';
 }
 
 /* URL-unescape the string S.
@@ -171,10 +170,9 @@ url_unescape_1 (char *s, unsigned char mask)
 
    The transformation is done in place.  If you need the original
    string intact, make a copy before calling this function.  */
-void
-url_unescape (char *s)
+void url_unescape(char *s)
 {
-  url_unescape_1 (s, 0);
+	// url_unescape_1(s, 0);
 }
 
 /* URL-unescape the string S.
@@ -409,23 +407,20 @@ reencode_escapes (const char *s)
 
 /* Returns the scheme type if the scheme is supported, or
    SCHEME_INVALID if not.  */
-
-enum url_scheme
-url_scheme (const char *url)
+enum url_scheme url_scheme (const char *url)
 {
-  int i;
+	int i;
 
-  for (i = 0; supported_schemes[i].leading_string; i++)
-    if (0 == strncasecmp (url, supported_schemes[i].leading_string,
-                          strlen (supported_schemes[i].leading_string)))
-      {
-        if (!(supported_schemes[i].flags & scm_disabled))
-          return (enum url_scheme) i;
-        else
-          return SCHEME_INVALID;
-      }
+	for (i = 0; supported_schemes[i].leading_string; i++)
+	if (0 == strncasecmp (url, supported_schemes[i].leading_string, 
+			strlen (supported_schemes[i].leading_string))) {
+		if (!(supported_schemes[i].flags & scm_disabled))
+			return (enum url_scheme) i;
+		else
+			return SCHEME_INVALID;
+	}
 
-  return SCHEME_INVALID;
+	return SCHEME_INVALID;
 }
 
 #define SCHEME_CHAR(ch) (isalnum (ch) || (ch) == '-' || (ch) == '+')
@@ -477,7 +472,7 @@ const char *scheme_leading_string (enum url_scheme scheme)
    portion after the scheme.
 
    If no username and password are found, return URL.  */
-
+// user:pass@host[:port]...
 static const char *url_skip_credentials (const char *url)
 {
   	/* Look for '@' that comes before terminators, such as '/', '?',
@@ -490,37 +485,36 @@ static const char *url_skip_credentials (const char *url)
 
 /* Parse credentials contained in [BEG, END).  The region is expected
    to have come from a URL and is unescaped.  */
-
-static bool
-parse_credentials (const char *beg, const char *end, char **user, char **passwd)
+static bool parse_credentials (const char *beg, const char *end, char **user, char **passwd)
 {
-  char *colon;
-  const char *userend;
+	/* http://user:pass@host */
+	/*        ^        ^     */
+	/*        beg    end     */
+	char *colon;
+	const char *userend;
 
-  if (beg == end)
-    return false;               /* empty user name */
+	if (beg == end)
+		return false;               /* empty user name */
 
-  colon = memchr (beg, ':', end - beg);
-  if (colon == beg)
-    return false;               /* again empty user name */
+	colon = memchr(beg, ':', end - beg);
+	if (colon == beg)
+		return false;               /* again empty user name */
 
-  if (colon)
-    {
-      *passwd = strdupdelim (colon + 1, end);
-      userend = colon;
-      url_unescape (*passwd);
-    }
-  else
-    {
-      *passwd = NULL;
-      userend = end;
-    }
-  *user = strdupdelim (beg, userend);
-  url_unescape (*user);
-  return true;
+	if (colon) {
+	  	*passwd = strdupdelim(colon + 1, end);
+	  	userend = colon;
+	  	url_unescape(*passwd);
+	} else {
+		*passwd = NULL;
+		userend = end;
+	}
+
+	*user = strdupdelim(beg, userend);
+	url_unescape(*user);
+	return true;
 }
 
-/* Used by main.c: detect URLs written using the "shorthand" URL forms
+/* Detect URLs written using the "shorthand" URL forms
    originally popularized by Netscape and NcFTP.  HTTP shorthands look
    like this:
 
@@ -533,47 +527,41 @@ parse_credentials (const char *beg, const char *end, char **user, char **passwd)
    foo.bar.com:/absdir/file      -> ftp://foo.bar.com//absdir/file
 
    If the URL needs not or cannot be rewritten, return NULL.  */
-
-char *
-rewrite_shorthand_url (const char *url)
+char *rewrite_shorthand_url (const char *url)
 {
-  const char *p;
-  char *ret;
+	const char *p;
+	char *ret;
 
-  if (url_scheme (url) != SCHEME_INVALID)
-    return NULL;
+	if (url_scheme(url) != SCHEME_INVALID)
+		return NULL;
 
-  /* Look for a ':' or '/'.  The former signifies NcFTP syntax, the
-     latter Netscape.  */
-  p = strpbrk (url, ":/");
-  if (p == url)
-    return NULL;
+	/* Look for a ':' or '/'.  The former signifies NcFTP syntax, the latter Netscape.  */
+	p = strpbrk(url, ":/"); // strpbrk - search a string for any of a set of bytes
+	if (p == url)
+		return NULL;
 
-  /* If we're looking at "://", it means the URL uses a scheme we
-     don't support, which may include "https" when compiled without
-     SSL support.  Don't bogusly rewrite such URLs.  */
-  if (p && p[0] == ':' && p[1] == '/' && p[2] == '/')
-    return NULL;
+	/** If we're looking at "://", it means the URL uses a scheme we
+     	don't support, which may include "https" when compiled without
+     	SSL support.  Don't bogusly rewrite such URLs.  */
+	if (p && p[0] == ':' && p[1] == '/' && p[2] == '/')
+		return NULL;
 
-  if (p && *p == ':')
-    {
-      /* Colon indicates ftp, as in foo.bar.com:path.  Check for
-         special case of http port number ("localhost:10000").  */
-      int digits = strspn (p + 1, "0123456789");
-      if (digits && (p[1 + digits] == '/' || p[1 + digits] == '\0'))
-        goto http;
+	if (p && *p == ':') {
+		/** Colon indicates ftp, as in foo.bar.com:path.  Check for
+			special case of http port number ("localhost:10000").  */
+		int digits = strspn (p + 1, "0123456789");
+		if (digits && (p[1 + digits] == '/' || p[1 + digits] == '\0'))
+			goto http;
 
-      /* Turn "foo.bar.com:path" to "ftp://foo.bar.com/path". */
-      if ((ret = aprintf ("ftp://%s", url)) != NULL)
-        ret[6 + (p - url)] = '/';
-    }
-  else
-    {
-    http:
-      /* Just prepend "http://" to URL. */
-      ret = aprintf ("http://%s", url);
-    }
-  return ret;
+		/* Turn "foo.bar.com:path" to "ftp://foo.bar.com/path". */
+		if ((ret = aprintf("ftp://%s", url)) != NULL)
+			ret[6 + (p - url)] = '/';
+	} else {
+http:
+		/* Just prepend "http://" to URL. */
+		ret = aprintf ("http://%s", url);
+	}
+	return ret;
 }
 
 static void split_path (const char *, char **, char **);
@@ -581,47 +569,43 @@ static void split_path (const char *, char **, char **);
 /* Like strpbrk, with the exception that it returns the pointer to the
    terminating zero (end-of-string aka "eos") if no matching character
    is found.  */
-
-static inline char *
-strpbrk_or_eos (const char *s, const char *accept)
+static inline char *strpbrk_or_eos (const char *s, const char *accept)
 {
-  char *p = strpbrk (s, accept);
-  if (!p)
-    p = strchr (s, '\0');
-  return p;
+	char *p = strpbrk (s, accept);
+	if (!p)
+		p = strchr (s, '\0');
+	return p;
 }
 
 /* Turn STR into lowercase; return true if a character was actually
    changed. */
-
-static bool
-lowercase_str (char *str)
+static bool lowercase_str(char *str)
 {
-  bool changed = false;
-  for (; *str; str++)
-    if (isupper (*str))
-      {
-        changed = true;
-        *str = tolower (*str);
-      }
-  return changed;
+	bool changed = false;
+	for (; *str; str++) {
+		if (isupper(*str)) {
+			changed = true;
+			*str = tolower(*str);
+		}
+	}
+
+	return changed;
 }
 
-static const char *
-init_seps (enum url_scheme scheme)
+static const char *init_seps (enum url_scheme scheme)
 {
-  static char seps[8] = ":/";
-  char *p = seps + 2;
-  int flags = supported_schemes[scheme].flags;
+	static char seps[8] = ":/";
+	char *p = seps + 2;
+	int flags = supported_schemes[scheme].flags;
 
-  if (flags & scm_has_params)
-    *p++ = ';';
-  if (flags & scm_has_query)
-    *p++ = '?';
-  if (flags & scm_has_fragment)
-    *p++ = '#';
-  *p = '\0';
-  return seps;
+	if (flags & scm_has_params) // ftp
+		*p++ = ';';
+	if (flags & scm_has_query) // http
+		*p++ = '?';
+	if (flags & scm_has_fragment) // http
+		*p++ = '#';
+	*p = '\0';
+	return seps;
 }
 
 static const char *parse_errors[] = {
@@ -650,296 +634,225 @@ static const char *parse_errors[] = {
    Return a new struct url if successful, NULL on error.  In case of
    error, and if ERROR is not NULL, also set *ERROR to the appropriate
    error code. */
-struct url *
-url_parse (const char *url, int *error, bool percent_encode)
+struct url *url_parse (const char *url, int *error, bool percent_encode)
 {
-  struct url *u;
-  const char *p;
-  bool path_modified, host_modified;
+	struct url *u;
+	const char *p;
+	bool host_modified;
 
-  enum url_scheme scheme;
-  const char *seps;
+	enum url_scheme scheme;
+	const char *seps;
 
-  const char *uname_b,     *uname_e;
-  const char *host_b,      *host_e;
-  const char *path_b,      *path_e;
-  const char *params_b,    *params_e;
-  const char *query_b,     *query_e;
-  const char *fragment_b,  *fragment_e;
+	const char *uname_b,     *uname_e;
+	const char *host_b,      *host_e;
+	const char *path_b,      *path_e;
+	const char *params_b,    *params_e;
+	const char *query_b,     *query_e;
+	const char *fragment_b,  *fragment_e;
 
-  int port;
-  char *user = NULL, *passwd = NULL;
+	int port;
+	char *user = NULL, *passwd = NULL;
 
-  const char *url_encoded = NULL;
+	const char *url_encoded = NULL;
 
-  int error_code;
+	int error_code;
 
-  scheme = url_scheme (url);
-  if (scheme == SCHEME_INVALID)
-    {
-      if (url_has_scheme (url))
-        error_code = PE_UNSUPPORTED_SCHEME;
-      else
-        error_code = PE_MISSING_SCHEME;
-      goto error;
+	scheme = url_scheme(url);
+	if (scheme == SCHEME_INVALID) {
+		log_error("Invalid scheme!");
+		return NULL;
+	}
+
+  	url_encoded = url;
+  	if (percent_encode)
+		url_encoded = reencode_escapes(url);
+	p = url_encoded;
+	p += strlen(supported_schemes[scheme].leading_string);
+	uname_b = p;
+	p = url_skip_credentials (p);
+	uname_e = p;
+
+	/* scheme://user:pass@host[:port]... */
+	/*                    ^              */
+
+	/* We attempt to break down the URL into the components path,
+       params, query, and fragment.  They are ordered like this:
+       scheme://host[:port][/path][;params][?query][#fragment]
+       http://host:8080/directory/file?query#ref: */
+	path_b     = path_e     = NULL;
+	params_b   = params_e   = NULL;
+	query_b    = query_e    = NULL;
+	fragment_b = fragment_e = NULL;
+
+	/* Initialize separators for optional parts of URL, depending on the
+	   scheme.  For example, FTP has params, and HTTP and HTTPS have
+	   query string and fragment. */
+	seps = init_seps(scheme);
+
+	host_b = p;
+
+	if (*p == '[') { // IPv6 matters
+		/* Handle IPv6 address inside square brackets.  Ideally we'd
+           just look for the terminating ']', but rfc2732 mandates
+           rejecting invalid IPv6 addresses.  */
+
+		/* The address begins after '['. */
+		host_b = p + 1;
+		host_e = strchr (host_b, ']');
+
+		if (!host_e) {
+			error_code = PE_UNTERMINATED_IPV6_ADDRESS;
+			goto error;
+		}
+
+		error_code = PE_IPV6_NOT_SUPPORTED;
+		goto error;
+
+		/* The closing bracket must be followed by a separator or by the
+			null char.  */
+		/* http://[::1]... */
+		/*             ^   */
+		if (!strchr(seps, *p)) {
+		/* Trailing garbage after []-delimited IPv6 address. */
+			error_code = PE_INVALID_HOST_NAME;
+			goto error;
+		}
+    } else {
+		p = strpbrk_or_eos(p, seps);
+		host_e = p;
+		debug("host_e: %s", host_e);
     }
 
-  url_encoded = url;
-  debug("url_encoded: %s", url_encoded);
+	// seps = ":/?#"
+	++seps;	/* advance to '/' */
+	// seps = "/?#"
 
-  if (percent_encode)
-    url_encoded = reencode_escapes (url);
-
-  debug("#2 url_encoded: %s", url_encoded);
-
-  p = url_encoded;
-  p += strlen (supported_schemes[scheme].leading_string);
-  uname_b = p;
-  p = url_skip_credentials (p);
-  uname_e = p;
-
-  debug("uname_b: %s", uname_b);
-  debug("uname_e: %s", uname_e);
-
-  /* scheme://user:pass@host[:port]... */
-  /*                    ^              */
-
-  /* We attempt to break down the URL into the components path,
-     params, query, and fragment.  They are ordered like this:
-
-       scheme://host[:port][/path][;params][?query][#fragment]  */
-
-  path_b     = path_e     = NULL;
-  params_b   = params_e   = NULL;
-  query_b    = query_e    = NULL;
-  fragment_b = fragment_e = NULL;
-
-  /* Initialize separators for optional parts of URL, depending on the
-     scheme.  For example, FTP has params, and HTTP and HTTPS have
-     query string and fragment. */
-  seps = init_seps (scheme);
-  debug("seps: %s", seps);
-
-  host_b = p;
-  debug("host_b: %s", host_b);
-
-  if (*p == '[')
-    {
-      /* Handle IPv6 address inside square brackets.  Ideally we'd
-         just look for the terminating ']', but rfc2732 mandates
-         rejecting invalid IPv6 addresses.  */
-
-      /* The address begins after '['. */
-      host_b = p + 1;
-      host_e = strchr (host_b, ']');
-
-      if (!host_e)
-        {
-          error_code = PE_UNTERMINATED_IPV6_ADDRESS;
-          goto error;
-        }
-
-      error_code = PE_IPV6_NOT_SUPPORTED;
-      goto error;
-
-      /* The closing bracket must be followed by a separator or by the
-         null char.  */
-      /* http://[::1]... */
-      /*             ^   */
-      if (!strchr (seps, *p))
-        {
-          /* Trailing garbage after []-delimited IPv6 address. */
-          error_code = PE_INVALID_HOST_NAME;
-          goto error;
-        }
-    }
-  else
-    {
-      p = strpbrk_or_eos (p, seps);
-      host_e = p;
-	  debug("host_e: %s", host_e);
-    }
-  ++seps;                       /* advance to '/' */
-
-  if (host_b == host_e)
-    {
-      error_code = PE_INVALID_HOST_NAME;
-      goto error;
+	// host_b = "host/static/file.tar"
+	// host_e = "/static/file.tar"
+	if (host_b == host_e) {
+		error_code = PE_INVALID_HOST_NAME;
+		goto error;
     }
 
-  port = scheme_default_port (scheme);
-  debug("port: %d", port);
-  debug("current url: %s", p);
-  if (*p == ':')
-    {
-      const char *port_b, *port_e, *pp;
+	port = scheme_default_port(scheme);
+	if (*p == ':') {
+		const char *port_b, *port_e, *pp;
+		/* scheme://host:port/tralala */
+		/*              ^             */
+		++p;
+		port_b = p;
+		p = strpbrk_or_eos(p, seps);
+		port_e = p;
 
-      /* scheme://host:port/tralala */
-      /*              ^             */
-      ++p;
-      port_b = p;
-      p = strpbrk_or_eos (p, seps);
-      port_e = p;
+		/* Allow empty port, as per rfc2396. */
+		if (port_b != port_e)
+		for (port = 0, pp = port_b; pp < port_e; pp++) {
+			if (!(*pp >= '0' && *pp <= '9')) {
+			/* http://host:12randomgarbage/blah */
+			/*               ^                  */
+				error_code = PE_BAD_PORT_NUMBER;
+				goto error;
+			}
 
-      /* Allow empty port, as per rfc2396. */
-      if (port_b != port_e)
-        for (port = 0, pp = port_b; pp < port_e; pp++)
-          {
-            if (!isdigit (*pp))
-              {
-                /* http://host:12randomgarbage/blah */
-                /*               ^                  */
-                error_code = PE_BAD_PORT_NUMBER;
-                goto error;
-              }
-            port = 10 * port + (*pp - '0');
-            /* Check for too large port numbers here, before we have
-               a chance to overflow on bogus port values.  */
-            if (port > 0xffff)
-              {
-                error_code = PE_BAD_PORT_NUMBER;
-                goto error;
-              }
-          }
-    }
-  /* Advance to the first separator *after* '/' (either ';' or '?',
-     depending on the scheme).  */
-  ++seps;
+			port = 10 * port + (*pp - '0');
+			/* Check for too large port numbers here, before we have
+			   a chance to overflow on bogus port values.  */
+			if (port > 0xffff) {
+				error_code = PE_BAD_PORT_NUMBER;
+				goto error;
+			}
+		}
+	}
 
-  /* Get the optional parts of URL, each part being delimited by
-     current location and the position of the next separator.  */
-#define GET_URL_PART(sepchar, var) do {                         \
-  if (*p == sepchar)                                            \
-    var##_b = ++p, var##_e = p = strpbrk_or_eos (p, seps);      \
-  ++seps;                                                       \
-} while (0)
+	/* Advance to the first separator *after* '/' (either ';' or '?',
+	   depending on the scheme).  */
+	++seps;
+	// seps = "?#"
 
-  GET_URL_PART ('/', path);
-  if (supported_schemes[scheme].flags & scm_has_params)
-    GET_URL_PART (';', params);
-  if (supported_schemes[scheme].flags & scm_has_query)
-    GET_URL_PART ('?', query);
-  if (supported_schemes[scheme].flags & scm_has_fragment)
-    GET_URL_PART ('#', fragment);
+	get_url_part('/', path);
+	if (supported_schemes[scheme].flags & scm_has_params)
+		get_url_part(';', params);
 
-#undef GET_URL_PART
-  assert (*p == 0);
+	if (supported_schemes[scheme].flags & scm_has_query)
+		get_url_part ('?', query);
 
-  if (uname_b != uname_e)
-    {
-      /* http://user:pass@host */
-      /*        ^         ^    */
-      /*     uname_b   uname_e */
-      if (!parse_credentials (uname_b, uname_e - 1, &user, &passwd))
-        {
-          error_code = PE_INVALID_USER_NAME;
-          goto error;
-        }
-    }
+	if (supported_schemes[scheme].flags & scm_has_fragment)
+		get_url_part ('#', fragment);
 
-  u = xnew0 (struct url);
-  u->scheme = scheme;
-  u->host   = strdupdelim (host_b, host_e);
-  u->port   = port;
-  u->user   = user;
-  u->passwd = passwd;
+	assert (*p == 0);
 
-  debug("path_b: %s", path_b);
-  debug("path_e: %s", path_e);
-  u->path = strdupdelim (path_b, path_e);
-  debug("path: %s", u->path);
-  path_modified = path_simplify (scheme, u->path);
-  debug("path_modified: %s", path_modified);
-  split_path (u->path, &u->dir, &u->file);
+	if (uname_b != uname_e) {
+	  	/* http://user:pass@host */
+	  	/*        ^         ^    */
+	  	/*     uname_b   uname_e */
+	  	if (!parse_credentials(uname_b, uname_e - 1, &user, &passwd)) {
+	      	error_code = PE_INVALID_USER_NAME;
+	      	goto error;
+	  	}
+	}
 
-  host_modified = lowercase_str (u->host);
+	u = xnew0 (struct url);
+	u->scheme = scheme;
+	u->host   = strdupdelim(host_b, host_e);
+	u->port   = port;
+	u->user   = user;
+	u->passwd = passwd;
+	u->path = strdupdelim (path_b, path_e);
+	split_path(u->path, &u->dir, &u->file);
 
-  /* Decode %HH sequences in host name.  This is important not so much
-     to support %HH sequences in host names (which other browser
-     don't), but to support binary characters (which will have been
-     converted to %HH by reencode_escapes).  */
-  if (strchr (u->host, '%'))
-    {
-      url_unescape (u->host);
-      host_modified = true;
+	host_modified = lowercase_str (u->host);
 
-      /* check for invalid control characters in host name */
-      for (p = u->host; *p; p++)
-        {
-          if (iscntrl(*p))
-            {
-              url_free(u);
-              error_code = PE_INVALID_HOST_NAME;
-              goto error;
-            }
-        }
+	/* Decode %HH sequences in host name.  This is important not so much
+	   to support %HH sequences in host names (which other browser
+	   don't), but to support binary characters (which will have been
+	   converted to %HH by reencode_escapes).  */
+	if (strchr (u->host, '%')) {
+		url_unescape(u->host);
+		host_modified = true;
+
+		/* check for invalid control characters in host name */
+		for (p = u->host; *p; p++) {
+			if (iscntrl(*p)) {
+				url_free(u);
+				error_code = PE_INVALID_HOST_NAME;
+				goto error;
+			}
+		}
     }
 
-  if (params_b)
-    u->params = strdupdelim (params_b, params_e);
-  if (query_b)
-    u->query = strdupdelim (query_b, query_e);
-  if (fragment_b)
-    u->fragment = strdupdelim (fragment_b, fragment_e);
+	if (params_b)
+		u->params = strdupdelim(params_b, params_e);
+	if (query_b)
+		u->query = strdupdelim(query_b, query_e);
+	if (fragment_b)
+		u->fragment = strdupdelim(fragment_b, fragment_e);
 
-  if (path_modified || u->fragment || host_modified || path_b == path_e)
-    {
-      /* If we suspect that a transformation has rendered what
-         url_string might return different from URL_ENCODED, rebuild
-         u->url using url_string.  */
-      u->url = url_string (u, URL_AUTH_SHOW);
+	if (u->fragment || host_modified || path_b == path_e) {
+		/* If we suspect that a transformation has rendered what
+			url_string might return different from URL_ENCODED, rebuild
+			u->url using url_string.  */
+		u->url = url_string(u, URL_AUTH_SHOW);
 
-      if (url_encoded != url)
-        xfree (url_encoded);
-    }
-  else
-    {
-      if (url_encoded == url)
-        u->url = xstrdup (url);
-      else
-        u->url = (char *) url_encoded;
+		if (url_encoded != url)
+			xfree(url_encoded);
+    } else {
+		if (url_encoded == url)
+			u->url = xstrdup(url);
+		else
+			u->url = (char *)url_encoded;
     }
 
-  return u;
+  	return u;
 
  error:
-  /* Cleanup in case of error: */
-  if (url_encoded && url_encoded != url)
-    xfree (url_encoded);
+	/* Cleanup in case of error: */
+	if (url_encoded && url_encoded != url)
+		xfree (url_encoded);
 
-  /* Transmit the error code to the caller, if the caller wants to
-     know.  */
-  if (error)
-    *error = error_code;
-  return NULL;
-}
-
-/* Return the error message string from ERROR_CODE, which should have
-   been retrieved from url_parse.  The error message is translated.  */
-
-char *
-url_error (const char *url, int error_code)
-{
-  assert (error_code >= 0 && ((size_t) error_code) < countof (parse_errors));
-
-  if (error_code == PE_UNSUPPORTED_SCHEME)
-    {
-      char *error, *p;
-      char *scheme = xstrdup (url);
-      assert(url_has_scheme (url));
-
-      if ((p = strchr (scheme, ':')))
-        *p = '\0';
-      if (!strcasecmp (scheme, "https"))
-        error = aprintf ("HTTPS support not compiled in");
-      else
-        error = aprintf (parse_errors[error_code], (scheme));
-      xfree (scheme);
-
-      return error;
-    }
-  else
-    return xstrdup ((parse_errors[error_code]));
+	/* Transmit the error code to the caller, if the caller wants to know.  */
+	if (error)
+		*error = error_code;
+	return NULL;
 }
 
 /* Split PATH into DIR and FILE.  PATH comes from the URL and is
@@ -956,23 +869,19 @@ url_error (const char *url, int error_code)
    "foo/bar/baz%2fqux"  "foo/bar"     "baz/qux" (!)
 
    DIR and FILE are freshly allocated.  */
-
-static void
-split_path (const char *path, char **dir, char **file)
+static void split_path(const char *path, char **dir, char **file)
 {
-  char *last_slash = strrchr (path, '/');
-  if (!last_slash)
-    {
-      *dir = xstrdup ("");
-      *file = xstrdup (path);
-    }
-  else
-    {
-      *dir = strdupdelim (path, last_slash);
-      *file = xstrdup (last_slash + 1);
-    }
-  url_unescape (*dir);
-  url_unescape (*file);
+	char *last_slash = strrchr(path, '/');
+	if (!last_slash) {
+		*dir = xstrdup("");
+		*file = xstrdup(path);
+	} else {
+		*dir = strdupdelim(path, last_slash);
+		*file = xstrdup(last_slash + 1);
+	}
+
+	url_unescape(*dir);
+	url_unescape(*file);
 }
 
 /* Note: URL's "full path" is the path with the query string and
@@ -1143,27 +1052,25 @@ url_set_file (struct url *url, const char *newfile)
   sync_path (url);
 }
 
-void
-url_free (struct url *url)
+void url_free (struct url *url)
 {
-  if (url)
-    {
-      xfree (url->host);
+	if (url) {
+		xfree (url->host);
 
-      xfree (url->path);
-      xfree (url->url);
+		xfree (url->path);
+		xfree (url->url);
 
-      xfree (url->params);
-      xfree (url->query);
-      xfree (url->fragment);
-      xfree (url->user);
-      xfree (url->passwd);
+		xfree (url->params);
+		xfree (url->query);
+		xfree (url->fragment);
+		xfree (url->user);
+		xfree (url->passwd);
 
-      xfree (url->dir);
-      xfree (url->file);
+		xfree (url->dir);
+		xfree (url->file);
 
-      xfree (url);
-    }
+		xfree (url);
+	}
 }
 
 /* Create all the necessary directories for PATH (a file).  Calls
@@ -1537,37 +1444,9 @@ url_file_name (const struct url *u, char *replaced_filename)
   temp_fnres.size = 0;
   temp_fnres.tail = 0;
 
-  /* If an alternative index file was defined, change index_filename */
-  if (opt.default_page)
-    index_filename = opt.default_page;
-
-
   /* Start with the directory prefix, if specified. */
   if (opt.dir_prefix)
     append_string (opt.dir_prefix, &fnres);
-
-  /* If "dirstruct" is turned on (typically the case with -r), add
-     the host and port (unless those have been turned off) and
-     directory structure.  */
-  /* All safe remote chars are unescaped and stored in temp_fnres,
-     then converted to local and appended to fnres.
-     Internationalized URL/IDN will produce punycode to lookup IP from DNS:
-     https://en.wikipedia.org/wiki/URL
-     https://en.wikipedia.org/wiki/Internationalized_domain_name
-     Non-ASCII code chars in the path:
-     https://en.wikipedia.org/wiki/List_of_Unicode_characters
-     https://en.wikipedia.org/wiki/List_of_writing_systems */
-  if (opt.dirstruct)
-    {
-      if (opt.protocol_directories)
-        {
-          if (temp_fnres.tail)
-            append_char ('/', &temp_fnres);
-          append_string (supported_schemes[u->scheme].name, &temp_fnres);
-      	}
-
-      append_dir_structure (u, &temp_fnres);
-    }
 
   if (!replaced_filename)
     {
@@ -1603,20 +1482,6 @@ url_file_name (const struct url *u, char *replaced_filename)
   temp_fnres.tail = 0;
   append_string (fname, &temp_fnres);
   xfree (fname);
-
-  /* Check that the length of the file name is acceptable. */
-  max_length = get_max_length (fnres.base, fnres.tail, _PC_NAME_MAX) - CHOMP_BUFFER;
-  if (max_length > 0 && strlen (temp_fnres.base) > max_length)
-    {
-      logprintf (LOG_NOTQUIET, "The name is too long, %lu chars total.\n",
-          (unsigned long) strlen (temp_fnres.base));
-      logprintf (LOG_NOTQUIET, "Trying to shorten...\n");
-
-      /* Shorten the file name. */
-      temp_fnres.base[max_length] = '\0';
-
-      logprintf (LOG_NOTQUIET, "New name is %s.\n", temp_fnres.base);
-    }
 
   xfree (fname_len_check);
 
@@ -1658,7 +1523,8 @@ url_file_name (const struct url *u, char *replaced_filename)
   return unique;
 }
 
-/* Resolve "." and ".." elements of PATH by destructively modifying
+/* bool path_simplify(enum url_scheme scheme, char *path)
+   Resolve "." and ".." elements of PATH by destructively modifying
    PATH and return true if PATH has been modified, false otherwise.
 
    The algorithm is in spirit similar to the one described in rfc1808,
@@ -1671,82 +1537,6 @@ url_file_name (const struct url *u, char *replaced_filename)
    test examples are provided below.  If you change anything in this
    function, run test_path_simplify to make sure you haven't broken a
    test case.  */
-
-static bool
-path_simplify (enum url_scheme scheme, char *path)
-{
-  char *h = path;               /* hare */
-  char *t = path;               /* tortoise */
-  char *beg = path;
-  char *end = strchr (path, '\0');
-
-  while (h < end)
-    {
-      /* Hare should be at the beginning of a path element. */
-
-      if (h[0] == '.' && (h[1] == '/' || h[1] == '\0'))
-        {
-          /* Ignore "./". */
-          h += 2;
-        }
-      else if (h[0] == '.' && h[1] == '.' && (h[2] == '/' || h[2] == '\0'))
-        {
-          /* Handle "../" by retreating the tortoise by one path
-             element -- but not past beginning.  */
-          if (t > beg)
-            {
-              /* Move backwards until T hits the beginning of the
-                 previous path element or the beginning of path. */
-              for (--t; t > beg && t[-1] != '/'; t--)
-                ;
-            }
-          else if (scheme == SCHEME_FTP
-#ifdef HAVE_SSL
-              || scheme == SCHEME_FTPS
-#endif
-              )
-            {
-              /* If we're at the beginning, copy the "../" literally
-                 and move the beginning so a later ".." doesn't remove
-                 it.  This violates RFC 3986; but we do it for FTP
-                 anyway because there is otherwise no way to get at a
-                 parent directory, when the FTP server drops us in a
-                 non-root directory (which is not uncommon). */
-              beg = t + 3;
-              goto regular;
-            }
-          h += 3;
-        }
-      else
-        {
-        regular:
-          /* A regular path element.  If H hasn't advanced past T,
-             simply skip to the next path element.  Otherwise, copy
-             the path element until the next slash.  */
-          if (t == h)
-            {
-              /* Skip the path element, including the slash.  */
-              while (h < end && *h != '/')
-                t++, h++;
-              if (h < end)
-                t++, h++;
-            }
-          else
-            {
-              /* Copy the path element, including the final slash.  */
-              while (h < end && *h != '/')
-                *t++ = *h++;
-              if (h < end)
-                *t++ = *h++;
-            }
-        }
-    }
-
-  if (t != h)
-    *t = '\0';
-
-  return t != h;
-}
 
 /* Return the length of URL's path.  Path is considered to be
    terminated by one or more of the ?query or ;params or #fragment,
