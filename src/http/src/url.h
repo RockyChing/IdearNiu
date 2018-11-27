@@ -91,11 +91,10 @@ void scheme_disable (enum url_scheme);
 const char *scheme_leading_string (enum url_scheme);
 
 char *url_string (const struct url *, enum url_auth_mode);
-char *url_file_name (const struct url *, char *);
+char *url_file_name (const struct url *);
 
 char *uri_merge (const char *, const char *);
 
-int mkalldirs (const char *);
 
 char *rewrite_shorthand_url (const char *);
 bool schemes_are_similar_p (enum url_scheme a, enum url_scheme b);

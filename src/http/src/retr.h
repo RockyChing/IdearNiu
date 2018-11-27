@@ -38,7 +38,6 @@ extern int numurls;
    functions! */
 extern SUM_SIZE_INT total_downloaded_bytes;
 extern double total_download_time;
-extern FILE *output_stream;
 extern bool output_stream_regular;
 
 /* Flags for fd_read_body. */
@@ -52,7 +51,7 @@ enum {
   rb_compressed_gzip = 8
 };
 
-int fd_read_body (const char *, int, FILE *, wgint, wgint, wgint *, wgint *, double *, int);
+int fd_read_body (int, FILE *, wgint, wgint, wgint *, wgint *, double *, int);
 
 typedef const char *(*hunk_terminator_t) (const char *, const char *, int);
 
@@ -68,10 +67,5 @@ double calc_rate (wgint, double, int *);
 void printwhat (int, int);
 
 void sleep_between_retrievals (int);
-
-void rotate_backups (const char *);
-
-
-void set_local_file (const char **, const char *);
 
 #endif /* RETR_H */

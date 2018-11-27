@@ -1073,60 +1073,6 @@ void url_free (struct url *url)
 	}
 }
 
-/* Create all the necessary directories for PATH (a file).  Calls
-   make_directory internally.  */
-int
-mkalldirs (const char *path)
-{
-  const char *p;
-  char *t;
-  struct stat st;
-  int res;
-
-  p = path + strlen (path);
-  for (; *p != '/' && p != path; p--)
-    ;
-
-  /* Don't create if it's just a file.  */
-  if ((p == path) && (*p != '/'))
-    return 0;
-  t = strdupdelim (path, p);
-
-  /* Check whether the directory exists.  */
-  if ((stat (t, &st) == 0))
-    {
-      if (S_ISDIR (st.st_mode))
-        {
-          xfree (t);
-          return 0;
-        }
-      else
-        {
-          /* If the dir exists as a file name, remove it first.  This
-             is *only* for Wget to work with buggy old CERN http
-             servers.  Here is the scenario: When Wget tries to
-             retrieve a directory without a slash, e.g.
-             http://foo/bar (bar being a directory), CERN server will
-             not redirect it too http://foo/bar/ -- it will generate a
-             directory listing containing links to bar/file1,
-             bar/file2, etc.  Wget will lose because it saves this
-             HTML listing to a file `bar', so it cannot create the
-             directory.  To work around this, if the file of the same
-             name exists, we just remove it and create the directory
-             anyway.  */
-          DEBUGP (("Removing %s because of directory danger!\n", t));
-          if (unlink (t))
-            logprintf (LOG_NOTQUIET, "Failed to unlink %s (%d): %s\n",
-                       t, errno, strerror(errno));
-        }
-    }
-  res = make_directory (t);
-  if (res != 0)
-    logprintf (LOG_NOTQUIET, "%s: %s\n", t, strerror (errno));
-  xfree (t);
-  return res;
-}
-
 /* Functions for constructing the file name out of URL components.  */
 
 /* A growable string structure, used by url_file_name and friends.
@@ -1140,11 +1086,10 @@ mkalldirs (const char *path)
    Functions that write to the members in this struct must make sure
    that base remains null terminated by calling append_null().
    */
-
 struct growable {
-  char *base;
-  int size;   /* memory allocated */
-  int tail;   /* string length */
+	char *base;
+	int size;   /* memory allocated */
+	int tail;   /* string length */
 };
 
 /* Ensure that the string can accept APPEND_COUNT more characters past
@@ -1422,105 +1367,12 @@ append_dir_structure (const struct url *u, struct growable *dest)
     }
 }
 
-/* Return a unique file name that matches the given URL as well as
-   possible.  Does not create directories on the file system.  */
-
-char *
-url_file_name (const struct url *u, char *replaced_filename)
+char *url_file_name (const struct url *u)
 {
-  struct growable fnres;        /* stands for "file name result" */
-  struct growable temp_fnres;
+	if (!u)
+		return NULL;
 
-  const char *u_file;
-  char *fname, *unique, *fname_len_check;
-  const char *index_filename = "index.html"; /* The default index file is index.html */
-  size_t max_length;
-
-  fnres.base = NULL;
-  fnres.size = 0;
-  fnres.tail = 0;
-
-  temp_fnres.base = NULL;
-  temp_fnres.size = 0;
-  temp_fnres.tail = 0;
-
-  /* Start with the directory prefix, if specified. */
-  if (opt.dir_prefix)
-    append_string (opt.dir_prefix, &fnres);
-
-  if (!replaced_filename)
-    {
-      /* Create the filename. */
-      u_file = *u->file ? u->file : index_filename;
-
-      /* Append "?query" to the file name, even if empty,
-       * and create fname_len_check. */
-      if (u->query)
-        fname_len_check = concat_strings (u_file, FN_QUERY_SEP_STR, u->query, NULL);
-      else
-        fname_len_check = strdupdelim (u_file, u_file + strlen (u_file));
-    }
-  else
-    {
-      u_file = replaced_filename;
-      fname_len_check = strdupdelim (u_file, u_file + strlen (u_file));
-    }
-
-  if (temp_fnres.tail)
-    append_char ('/', &temp_fnres);
-
-  append_uri_pathel (fname_len_check,
-    fname_len_check + strlen (fname_len_check), true, &temp_fnres);
-
-  /* Zero-terminate the temporary file name. */
-  append_char ('\0', &temp_fnres);
-
-  /* convert all remote chars before length check and appending to local path */
-  fname = convert_fname (temp_fnres.base);
-  temp_fnres.base = NULL;
-  temp_fnres.size = 0;
-  temp_fnres.tail = 0;
-  append_string (fname, &temp_fnres);
-  xfree (fname);
-
-  xfree (fname_len_check);
-
-  /* The filename has already been 'cleaned' by append_uri_pathel() above.  So,
-   * just append it. */
-  if (fnres.tail)
-    append_char ('/', &fnres);
-  append_string (temp_fnres.base, &fnres);
-
-  fname = fnres.base;
-
-  /* Make a final check that the path length is acceptable? */
-  /* TODO: check fnres.base for path length problem */
-
-  xfree (temp_fnres.base);
-
-  /* Check the cases in which the unique extensions are not used:
-     1) Clobbering is turned off (-nc).
-     2) Retrieval with regetting.
-     3) Timestamping is used.
-     4) Hierarchy is built.
-     5) Backups are specified.
-
-     The exception is the case when file does exist and is a
-     directory (see `mkalldirs' for explanation).  */
-
-  if (ALLOW_CLOBBER
-      && !(file_exists_p (fname, NULL) && !file_non_directory_p (fname)))
-    {
-      unique = fname;
-    }
-  else
-    {
-      unique = unique_name (fname, true);
-      if (unique != fname)
-        xfree (fname);
-    }
-
-  return unique;
+	return *u->file ? u->file : NULL;
 }
 
 /* bool path_simplify(enum url_scheme scheme, char *path)

@@ -27,7 +27,9 @@
 /* Application-wide SSL context.  This is common to all SSL connections.  */
 static SSL_CTX *ssl_ctx;
 
-/* Initialize the SSL's PRNG using various methods. */
+/* Initialize the SSL's PRNG using various methods.
+ * PRNG(Pseudo Random Noise Generation), 即伪随机噪声生成，用于生成各种密码学操作中所需的随机数。
+ */
 static void init_prng(void)
 {
     char namebuf[256];
@@ -103,18 +105,18 @@ bool ssl_init (void)
     SSL_METHOD const *meth;
     long ssl_options = 0;
     char *ciphers_string = NULL;
-    log_info("OPENSSL_VERSION_NUMBER: %x", OPENSSL_VERSION_NUMBER);
+    log_info("OPENSSL_VERSION_NUMBER: 0x%x", OPENSSL_VERSION_NUMBER); // 0x1000106f
 #if !defined(LIBRESSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER >= 0x10100000L)
-    printf("+++ 1 +++\n");
     int ssl_proto_version = 0;
 #endif
 
-#if OPENSSL_VERSION_NUMBER >= 0x00907000
-    printf("+++ 2 +++\n");
+#ifdef OPENSSL_API_COMPAT
+	log_info("OPENSSL_API_COMPAT: 0x%x", OPENSSL_API_COMPAT); // 0x
+#endif
 
+#if OPENSSL_VERSION_NUMBER >= 0x00907000
     if (ssl_true_initialized == 0) {
 #if OPENSSL_API_COMPAT < 0x10100000L
-        printf("+++ 3 +++\n");
         OPENSSL_config(NULL);
 #endif
         ssl_true_initialized = 1;
@@ -139,35 +141,34 @@ bool ssl_init (void)
 #endif
 
 #if OPENSSL_API_COMPAT >= 0x10100000L
-    printf("OPENSSL_API_COMPAT: %x\n", OPENSSL_API_COMPAT);
     OPENSSL_init_ssl(0, NULL);
 #else
-    printf("+++ OPENSSL_API_COMPAT < 0x10100000L +++\n");
     SSL_library_init();
     SSL_load_error_strings();
 #endif
+
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-    printf("+++ OPENSSL_VERSION_NUMBER < 0x10100000L +++\n");
     SSLeay_add_all_algorithms();
     SSLeay_add_ssl_algorithms();
 #endif
 
+	log_info("secure_protocol: %d", opt.secure_protocol); // 0x1000106f
     switch (opt.secure_protocol) {
 #if !defined OPENSSL_NO_SSL2 && OPENSSL_VERSION_NUMBER < 0x10100000L
     case secure_protocol_sslv2:
-        meth = SSLv2_client_method ();
+        meth = SSLv2_client_method();
         break;
 #endif
 
 #ifndef OPENSSL_NO_SSL3_METHOD
     case secure_protocol_sslv3:
-        meth = SSLv3_client_method ();
+        meth = SSLv3_client_method();
         break;
 #endif
 
     case secure_protocol_auto:
     case secure_protocol_pfs:
-        meth = SSLv23_client_method ();
+        meth = SSLv23_client_method();
         ssl_options |= SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3;
         break;
     case secure_protocol_tlsv1:
@@ -175,7 +176,7 @@ bool ssl_init (void)
         meth = TLS_client_method();
         ssl_proto_version = TLS1_VERSION;
 #else
-        meth = TLSv1_client_method ();
+        meth = TLSv1_client_method();
 #endif
     break;
 
@@ -185,7 +186,7 @@ bool ssl_init (void)
         meth = TLS_client_method();
         ssl_proto_version = TLS1_1_VERSION;
 #else
-        meth = TLSv1_1_client_method ();
+        meth = TLSv1_1_client_method();
 #endif
         break;
 
@@ -194,7 +195,7 @@ bool ssl_init (void)
         meth = TLS_client_method();
         ssl_proto_version = TLS1_2_VERSION;
 #else
-        meth = TLSv1_2_client_method ();
+        meth = TLSv1_2_client_method();
 #endif
         break;
 
@@ -203,24 +204,23 @@ bool ssl_init (void)
         meth = TLS_client_method();
         ssl_proto_version = TLS1_3_VERSION;
 #else
-        logprintf (LOG_NOTQUIET, "Your OpenSSL version is too old to support TLS 1.3\n");
+        log_error("Your OpenSSL version is too old to support TLS 1.3");
         goto error;
 #endif
         break;
 #else
     case secure_protocol_tlsv1_1:
-        logprintf (LOG_NOTQUIET, "Your OpenSSL version is too old to support TLSv1.1\n");
+        log_error("Your OpenSSL version is too old to support TLSv1.1");
         goto error;
 
     case secure_protocol_tlsv1_2:
-        logprintf (LOG_NOTQUIET, "Your OpenSSL version is too old to support TLSv1.2\n");
+        log_error("Your OpenSSL version is too old to support TLSv1.2");
         goto error;
-
 #endif
 
     default:
-        logprintf (LOG_NOTQUIET, "OpenSSL: unimplemented 'secure-protocol' option value %d\n", opt.secure_protocol);
-        logprintf (LOG_NOTQUIET, "Please report this issue to bug-wget@gnu.org\n");
+        log_error("OpenSSL: unimplemented 'secure-protocol' option value %d", opt.secure_protocol);
+        log_error("Please report this issue to bug-wget@gnu.org\n");
         abort();
     }
 
@@ -277,7 +277,7 @@ bool ssl_init (void)
        certificate is invalid.  We verify the certificate separately in
        ssl_check_certificate, which provides much better diagnostics
        than examining the error stack after a failed SSL_connect.  */
-    SSL_CTX_set_verify (ssl_ctx, SSL_VERIFY_NONE, NULL);
+    SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_NONE, NULL);
 
     /* Use the private key from the cert file unless otherwise specified. */
     if (opt.cert_file && !opt.private_key) {
@@ -314,7 +314,7 @@ bool ssl_init (void)
 error:
     if (ssl_ctx)
         SSL_CTX_free (ssl_ctx);
-    print_error();
+    print_errors();
     return false;
 }
 
@@ -355,7 +355,8 @@ static int openssl_read(int fd, char *buf, int bufsize, void *arg)
     args.bufsize = bufsize;
     args.ctx = (struct openssl_transport_context*) arg;
 
-    if (run_with_timeout(opt.read_timeout, openssl_read_callback, &args)) {
+	openssl_read_callback(&args);
+    if (args.retval < 0) {
         return -1;
     }
 
@@ -518,16 +519,16 @@ bool ssl_connect_wget (int fd, const char *hostname, int *continue_session)
     log_debug("Initiating SSL handshake.\n");
 
     assert(ssl_ctx != NULL);
-    conn = SSL_new (ssl_ctx);
+    conn = SSL_new(ssl_ctx);
     if (!conn)
         goto error;
 
 #if OPENSSL_VERSION_NUMBER >= 0x0090806fL && !defined(OPENSSL_NO_TLSEXT)
     /* If the SSL library was built with support for ServerNameIndication
        then use it whenever we have a hostname.  If not, don't, ever. */
-    if (!is_valid_ip_address (hostname)) {
+    if (!is_valid_ip_address(hostname)) {
         const char *sni_hostname = _sni_hostname(hostname);
-        long rc = SSL_set_tlsext_host_name (conn, sni_hostname);
+        long rc = SSL_set_tlsext_host_name(conn, sni_hostname);
         xfree(sni_hostname);
         if (rc == 0) {
             log_error("Failed to set TLS server-name indication.");
@@ -538,8 +539,8 @@ bool ssl_connect_wget (int fd, const char *hostname, int *continue_session)
 
     if (continue_session) {
         /* attempt to resume a previous SSL session */
-        ctx = (struct openssl_transport_context *) fd_transport_context (*continue_session);
-        if (!ctx || !ctx->sess || !SSL_set_session (conn, ctx->sess))
+        ctx = (struct openssl_transport_context *) fd_transport_context(*continue_session);
+        if (!ctx || !ctx->sess || !SSL_set_session(conn, ctx->sess))
             goto error;
     }
 
@@ -552,13 +553,14 @@ bool ssl_connect_wget (int fd, const char *hostname, int *continue_session)
 
     /* Re-seed the PRNG before the SSL handshake */
     init_prng();
-    if (RAND_status () != 1) {
+    if (RAND_status() != 1) {
         log_error("WARNING: Could not seed PRNG. Consider using --random-file.\n");
         goto error;
     }
 
     scwt_ctx.ssl = conn;
-    if (run_with_timeout(opt.read_timeout, ssl_connect_with_timeout_callback, &scwt_ctx)) {
+	ssl_connect_with_timeout_callback(&scwt_ctx);
+    if (scwt_ctx.result < 0) {
         log_error("SSL handshake timed out.\n");
         goto timeout;
     }
@@ -883,9 +885,9 @@ bool ssl_check_certificate(int fd, const char *host)
             xentry = X509_NAME_get_entry(xname,i);
             sdata = X509_NAME_ENTRY_get_data(xentry);
             if (strlen(common_name) != (size_t) ASN1_STRING_length(sdata)) {
-                log_warn("%s: certificate common name is invalid (contains a NUL character).\n\
-                        This may be an indication that the host is not who it claims to be\n\
-                        (that is, it is not the real %s).", severity, (host));
+                log_warn("%s: certificate common name is invalid (contains a NUL character).\n"
+                        "This may be an indication that the host is not who it claims to be\n"
+                        "(that is, it is not the real %s).", severity, (host));
                 success = false;
             }
         }

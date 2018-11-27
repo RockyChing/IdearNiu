@@ -12,7 +12,6 @@
 #include "utils.h"
 #include "retr.h"
 #include "host.h"
-#include "hash.h"
 #include "res.h"
 #include "convert.h"
 
@@ -121,20 +120,12 @@ static void blacklist_add (struct hash_table *blacklist, const char *url)
   char *url_unescaped = xstrdup (url);
 
   url_unescape (url_unescaped);
-  string_set_add (blacklist, url_unescaped);
   xfree (url_unescaped);
 }
 
 static int blacklist_contains (struct hash_table *blacklist, const char *url)
 {
-  char *url_unescaped = xstrdup(url);
-  int ret;
-
-  url_unescape (url_unescaped);
-  ret = string_set_contains (blacklist, url_unescaped);
-  xfree (url_unescaped);
-
-  return ret;
+  return 0;
 }
 
 typedef enum
@@ -145,8 +136,6 @@ typedef enum
 } reject_reason;
 
 static reject_reason download_child (const struct urlpos *, struct url *, int,
-                              struct url *, struct hash_table *);
-static reject_reason descend_redirect (const char *, struct url *, int,
                               struct url *, struct hash_table *);
 static void write_reject_log_header (FILE *);
 static void write_reject_log_reason (FILE *, reject_reason,
@@ -308,48 +297,6 @@ download_child (const struct urlpos *upos, struct url *parent, int depth,
 
   return reason;
 }
-
-/* This function determines whether we will consider downloading the
-   children of a URL whose download resulted in a redirection,
-   possibly to another host, etc.  It is needed very rarely, and thus
-   it is merely a simple-minded wrapper around download_child.  */
-
-static reject_reason
-descend_redirect (const char *redirected, struct url *orig_parsed, int depth,
-                    struct url *start_url_parsed, struct hash_table *blacklist)
-{
-  struct url *new_parsed;
-  struct urlpos *upos;
-  reject_reason reason;
-
-  assert (orig_parsed != NULL);
-
-  new_parsed = url_parse (redirected, NULL, false);
-  assert (new_parsed != NULL);
-
-  upos = xnew0 (struct urlpos);
-  upos->url = new_parsed;
-
-  reason = download_child (upos, orig_parsed, depth,
-                              start_url_parsed, blacklist);
-
-  if (reason == WG_RR_SUCCESS)
-    blacklist_add (blacklist, upos->url->url);
-  else if (reason == WG_RR_LIST || reason == WG_RR_REGEX)
-    {
-      DEBUGP (("Ignoring decision for redirects, decided to load it.\n"));
-      blacklist_add (blacklist, upos->url->url);
-      reason = WG_RR_SUCCESS;
-    }
-  else
-    DEBUGP (("Redirection \"%s\" failed the test.\n", redirected));
-
-  url_free (new_parsed);
-  xfree (upos);
-
-  return reason;
-}
-
 
 /* This function writes the rejected log header. */
 static void

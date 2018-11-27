@@ -37,16 +37,6 @@
 
 #include <regex.h>
 
-#ifndef HAVE_SIGSETJMP
-/* If sigsetjmp is a macro, configure won't pick it up. */
-# ifdef sigsetjmp
-#  define HAVE_SIGSETJMP
-# endif
-#endif
-
-#if defined HAVE_SIGSETJMP || defined HAVE_SIGBLOCK
-# define USE_SIGNAL_TIMEOUT
-#endif
 
 /* Some systems (Linux libc5, "NCR MP-RAS 3.0", and others) don't
    provide MAP_FAILED, a symbolic constant for the value returned by
@@ -61,7 +51,6 @@
 #endif
 
 #include "utils.h"
-#include "hash.h"
 
 
 _Noreturn static void
@@ -740,46 +729,6 @@ open_stat(const char *fname, int flags, mode_t mode, file_stats_t *fstats)
   return fd;
 }
 
-/* Create DIRECTORY.  If some of the pathname components of DIRECTORY
-   are missing, create them first.  In case any mkdir() call fails,
-   return its error status.  Returns 0 on successful completion.
-
-   The behaviour of this function should be identical to the behaviour
-   of `mkdir -p' on systems where mkdir supports the `-p' option.  */
-int
-make_directory (const char *directory)
-{
-  int i, ret, quit = 0;
-  char *dir;
-
-  /* Make a copy of dir, to be able to write to it.  Otherwise, the
-     function is unsafe if called with a read-only char *argument.  */
-  STRDUP_ALLOCA (dir, directory);
-
-  /* If the first character of dir is '/', skip it (and thus enable
-     creation of absolute-pathname directories.  */
-  for (i = (*dir == '/'); 1; ++i)
-    {
-      for (; dir[i] && dir[i] != '/'; i++)
-        ;
-      if (!dir[i])
-        quit = 1;
-      dir[i] = '\0';
-      /* Check whether the directory already exists.  Allow creation of
-         of intermediate directories to fail, as the initial path components
-         are not necessarily directories!  */
-      if (!file_exists_p (dir, NULL))
-        ret = mkdir (dir, 0777);
-      else
-        ret = 0;
-      if (quit)
-        break;
-      else
-        dir[i] = '/';
-    }
-  return ret;
-}
-
 /* Merge BASE with FILE.  BASE can be a directory or a file name, FILE
    should be a file name.
 
@@ -1260,71 +1209,6 @@ vec_append (char **vec, const char *str)
   vec[cnt - 1] = xstrdup (str);
   vec[cnt] = NULL;
   return vec;
-}
-
-/* Sometimes it's useful to create "sets" of strings, i.e. special
-   hash tables where you want to store strings as keys and merely
-   query for their existence.  Here is a set of utility routines that
-   makes that transparent.  */
-
-void
-string_set_add (struct hash_table *ht, const char *s)
-{
-  /* First check whether the set element already exists.  If it does,
-     do nothing so that we don't have to free() the old element and
-     then strdup() a new one.  */
-  if (hash_table_contains (ht, s))
-    return;
-
-  /* We use "1" as value.  It provides us a useful and clear arbitrary
-     value, and it consumes no memory -- the pointers to the same
-     string "1" will be shared by all the key-value pairs in all `set'
-     hash tables.  */
-  hash_table_put (ht, xstrdup (s), "1");
-}
-
-/* Synonym for hash_table_contains... */
-
-int
-string_set_contains (struct hash_table *ht, const char *s)
-{
-  return hash_table_contains (ht, s);
-}
-
-/* Convert the specified string set to array.  ARRAY should be large
-   enough to hold hash_table_count(ht) char pointers.  */
-
-void string_set_to_array (struct hash_table *ht, char **array)
-{
-  hash_table_iterator iter;
-  for (hash_table_iterate (ht, &iter); hash_table_iter_next (&iter); )
-    *array++ = iter.key;
-}
-
-/* Free the string set.  This frees both the storage allocated for
-   keys and the actual hash table.  (hash_table_destroy would only
-   destroy the hash table.)  */
-
-void
-string_set_free (struct hash_table *ht)
-{
-  hash_table_iterator iter;
-  for (hash_table_iterate (ht, &iter); hash_table_iter_next (&iter); )
-    xfree (iter.key);
-  hash_table_destroy (ht);
-}
-
-/* Utility function: simply call xfree() on all keys and values of HT.  */
-
-void
-free_keys_and_values (struct hash_table *ht)
-{
-  hash_table_iterator iter;
-  for (hash_table_iterate (ht, &iter); hash_table_iter_next (&iter); )
-    {
-      xfree (iter.key);
-      xfree (iter.value);
-    }
 }
 
 /* Get digit grouping data for thousand separors by calling
@@ -1819,166 +1703,6 @@ random_float (void)
 #endif /* not HAVE_DRAND48 */
 }
 
-/* Implementation of run_with_timeout, a generic timeout-forcing
-   routine for systems with Unix-like signal handling.  */
-
-#ifdef USE_SIGNAL_TIMEOUT
-# ifdef HAVE_SIGSETJMP
-#  define SETJMP(env) sigsetjmp (env, 1)
-
-static sigjmp_buf run_with_timeout_env;
-
-_Noreturn static void
-abort_run_with_timeout (int sig)
-{
-  assert (sig == SIGALRM);
-  siglongjmp (run_with_timeout_env, -1);
-}
-# else /* not HAVE_SIGSETJMP */
-#  define SETJMP(env) setjmp (env)
-
-static jmp_buf run_with_timeout_env;
-
-static void _Noreturn
-abort_run_with_timeout (int sig)
-{
-  assert (sig == SIGALRM);
-  /* We don't have siglongjmp to preserve the set of blocked signals;
-     if we longjumped out of the handler at this point, SIGALRM would
-     remain blocked.  We must unblock it manually. */
-  sigset_t set;
-  sigemptyset (&set);
-  sigaddset (&set, SIGALRM);
-  sigprocmask (SIG_BLOCK, &set, NULL);
-
-  /* Now it's safe to longjump. */
-  longjmp (run_with_timeout_env, -1);
-}
-# endif /* not HAVE_SIGSETJMP */
-
-/* Arrange for SIGALRM to be delivered in TIMEOUT seconds.  This uses
-   setitimer where available, alarm otherwise.
-
-   TIMEOUT should be non-zero.  If the timeout value is so small that
-   it would be rounded to zero, it is rounded to the least legal value
-   instead (1us for setitimer, 1s for alarm).  That ensures that
-   SIGALRM will be delivered in all cases.  */
-
-static void
-alarm_set (double timeout)
-{
-#ifdef ITIMER_REAL
-  /* Use the modern itimer interface. */
-  struct itimerval itv;
-  xzero (itv);
-  itv.it_value.tv_sec = (long) timeout;
-  itv.it_value.tv_usec = 1000000 * (timeout - (long)timeout);
-  if (itv.it_value.tv_sec == 0 && itv.it_value.tv_usec == 0)
-    /* Ensure that we wait for at least the minimum interval.
-       Specifying zero would mean "wait forever".  */
-    itv.it_value.tv_usec = 1;
-  setitimer (ITIMER_REAL, &itv, NULL);
-#else  /* not ITIMER_REAL */
-  /* Use the old alarm() interface. */
-  int secs = (int) timeout;
-  if (secs == 0)
-    /* Round TIMEOUTs smaller than 1 to 1, not to zero.  This is
-       because alarm(0) means "never deliver the alarm", i.e. "wait
-       forever", which is not what someone who specifies a 0.5s
-       timeout would expect.  */
-    secs = 1;
-  alarm (secs);
-#endif /* not ITIMER_REAL */
-}
-
-/* Cancel the alarm set with alarm_set. */
-
-static void
-alarm_cancel (void)
-{
-#ifdef ITIMER_REAL
-  struct itimerval disable;
-  xzero (disable);
-  setitimer (ITIMER_REAL, &disable, NULL);
-#else  /* not ITIMER_REAL */
-  alarm (0);
-#endif /* not ITIMER_REAL */
-}
-
-/* Call FUN(ARG), but don't allow it to run for more than TIMEOUT
-   seconds.  Returns true if the function was interrupted with a
-   timeout, false otherwise.
-
-   This works by setting up SIGALRM to be delivered in TIMEOUT seconds
-   using setitimer() or alarm().  The timeout is enforced by
-   longjumping out of the SIGALRM handler.  This has several
-   advantages compared to the traditional approach of relying on
-   signals causing system calls to exit with EINTR:
-
-     * The callback function is *forcibly* interrupted after the
-       timeout expires, (almost) regardless of what it was doing and
-       whether it was in a syscall.  For example, a calculation that
-       takes a long time is interrupted as reliably as an IO
-       operation.
-
-     * It works with both SYSV and BSD signals because it doesn't
-       depend on the default setting of SA_RESTART.
-
-     * It doesn't require special handler setup beyond a simple call
-       to signal().  (It does use sigsetjmp/siglongjmp, but they're
-       optional.)
-
-   The only downside is that, if FUN allocates internal resources that
-   are normally freed prior to exit from the functions, they will be
-   lost in case of timeout.  */
-
-bool
-run_with_timeout (double timeout, void (*fun) (void *), void *arg)
-{
-  int saved_errno;
-
-  if (timeout == 0)
-    {
-      fun (arg);
-      return false;
-    }
-
-  if (SETJMP (run_with_timeout_env) != 0)
-    {
-      /* Longjumped out of FUN with a timeout. */
-      signal (SIGALRM, SIG_DFL);
-      return true;
-    }
-  else
-    {
-      signal (SIGALRM, abort_run_with_timeout);
-    }
-  alarm_set (timeout);
-  fun (arg);
-
-  /* Preserve errno in case alarm() or signal() modifies it. */
-  saved_errno = errno;
-  alarm_cancel ();
-  signal (SIGALRM, SIG_DFL);
-  errno = saved_errno;
-
-  return false;
-}
-
-#else  /* not USE_SIGNAL_TIMEOUT */
-
-/* A stub version of run_with_timeout that just calls FUN(ARG).  Don't
-   define it under Windows, because Windows has its own version of
-   run_with_timeout that uses threads.  */
-
-bool
-run_with_timeout (double timeout, void (*fun) (void *), void *arg)
-{
-  fun (arg);
-  return false;
-}
-
-#endif /* not USE_SIGNAL_TIMEOUT */
 
 /* Sleep the specified amount of seconds.  On machines without
    nanosleep(), this may sleep shorter if interrupted by signals.  */

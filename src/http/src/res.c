@@ -63,10 +63,7 @@ as that of the covered work.  */
      application such as Wget.  Besides, it is highly questionable
      whether anyone deploys the recommended expiry scheme for
      robots.txt.
-
-   Entry points are functions res_parse, res_parse_from_file,
-   res_match_path, res_register_specs, res_get_specs, and
-   res_retrieve_file.  */
+ */
 
 #include "wget.h"
 
@@ -77,7 +74,6 @@ as that of the covered work.  */
 #include <assert.h>
 
 #include "utils.h"
-#include "hash.h"
 #include "url.h"
 #include "retr.h"
 #include "res.h"
@@ -471,10 +467,6 @@ res_match_path (const struct robot_specs *specs, const char *path)
   return true;
 }
 
-/* Registering the specs. */
-
-static struct hash_table *registered_specs;
-
 /* Stolen from cookies.c. */
 #define SET_HOSTPORT(host, port, result) do {           \
   int HP_len = strlen (host);                           \
@@ -484,120 +476,15 @@ static struct hash_table *registered_specs;
   number_to_string (result + HP_len + 1, port);         \
 } while (0)
 
-/* Register RES specs that below to server on HOST:PORT.  They will
-   later be retrievable using res_get_specs.  */
-
-void
-res_register_specs (const char *host, int port, struct robot_specs *specs)
-{
-  struct robot_specs *old;
-  char *hp, *hp_old;
-  SET_HOSTPORT (host, port, hp);
-
-  if (!registered_specs)
-    registered_specs = make_nocase_string_hash_table (0);
-
-  if (hash_table_get_pair (registered_specs, hp, &hp_old, &old))
-    {
-      if (old)
-        free_specs (old);
-      hash_table_put (registered_specs, hp_old, specs);
-    }
-  else
-    {
-      hash_table_put (registered_specs, xstrdup (hp), specs);
-    }
-}
-
 /* Get the specs that belong to HOST:PORT. */
 
-struct robot_specs *
-res_get_specs (const char *host, int port)
+struct robot_specs *res_get_specs(const char *host, int port)
 {
-  char *hp;
-  SET_HOSTPORT (host, port, hp);
-  if (!registered_specs)
     return NULL;
-  return hash_table_get (registered_specs, hp);
 }
 
-/* Loading the robots file.  */
-
-#define RES_SPECS_LOCATION "/robots.txt"
-
-/* Retrieve the robots.txt from the server root of the server that
-   serves URL.  The file will be named according to the currently
-   active rules, and the file name will be returned in *file.
-
-   Return true if robots were retrieved OK, false otherwise.  */
-
-bool
-res_retrieve_file (const char *url, char **file)
+void res_cleanup (void)
 {
-  uerr_t err;
-  char *robots_url = uri_merge (url, RES_SPECS_LOCATION);
-  int saved_ts_val = opt.timestamping;
-  int saved_sp_val = 0, url_err;
-  struct url * url_parsed;
 
-  logputs (LOG_VERBOSE, ("Loading robots.txt; please ignore errors.\n"));
-  *file = NULL;
-  opt.timestamping = false;
-
-  url_parsed = url_parse (robots_url, &url_err, true);
-  if (!url_parsed)
-    {
-      //char *error = url_error (robots_url, url_err);
-      //logprintf (LOG_NOTQUIET, "%s: %s.\n", robots_url, error);
-     // xfree (error);
-      err = URLERROR;
-    }
-  else
-    {
-      err = retrieve_url(url_parsed, robots_url, file, NULL, NULL,
-                          false, false);
-      url_free(url_parsed);
-    }
-
-  opt.timestamping = saved_ts_val;
-  xfree (robots_url);
-
-  if (err != RETROK && *file != NULL)
-    {
-      /* If the file is not retrieved correctly, but retrieve_url
-         allocated the file name, deallocate is here so that the
-         caller doesn't have to worry about it.  */
-      xfree (*file);
-    }
-  return err == RETROK;
-}
-
-bool
-is_robots_txt_url (const char *url)
-{
-  char *robots_url = uri_merge (url, RES_SPECS_LOCATION);
-  bool ret = are_urls_equal (url, robots_url);
-
-  xfree (robots_url);
-
-  return ret;
-}
-
-void
-res_cleanup (void)
-{
-  if (registered_specs)
-    {
-      hash_table_iterator iter;
-      for (hash_table_iterate (registered_specs, &iter);
-           hash_table_iter_next (&iter);
-           )
-        {
-          xfree (iter.key);
-          free_specs (iter.value);
-        }
-      hash_table_destroy (registered_specs);
-      registered_specs = NULL;
-    }
 }
 

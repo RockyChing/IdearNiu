@@ -2,9 +2,17 @@
 #define WGET_H
 
 #include "config.h"
+#include <alloca.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdint.h>
+#include <inttypes.h>
 
-/* Include these, so random files need not include them.  */
-#include "sysdep.h"
+#include <stdbool.h>
+#include <limits.h>
+#include <fnmatch.h>
+
+#include "intprops.h"
 
 /* Disable assertions when debug support is not compiled in. */
 #ifndef ENABLE_DEBUG
@@ -24,21 +32,6 @@
 /* Just to be a little paranoid about it. */
 # undef  USE_NLS_PROGRESS_BAR
 #endif
-
-/* I18N NOTE: You will notice that none of the DEBUGP messages are
-   marked as translatable.  This is intentional, for a few reasons:
-
-   1) The debug messages are not meant for the users to look at, but
-   for the developers; as such, they should be considered more like
-   source comments than real program output.
-
-   2) The messages are numerous, and yet they are random and frivolous
-   ("double yuck!" and such).  There would be a lot of work with no
-   gain.
-
-   3) Finally, the debug messages are meant to be a clue for me to
-   debug problems with Wget.  If I get them in a language I don't
-   understand, debugging will become a new challenge of its own!  */
 
 /* locale independent replacement for ctype.h */
 #include <ctype.h>

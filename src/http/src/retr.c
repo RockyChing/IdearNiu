@@ -14,7 +14,6 @@
 #include "http.h"
 #include "host.h"
 #include "connect.h"
-#include "hash.h"
 #include "convert.h"
 #include "ptimer.h"
 #include "progress.h"
@@ -27,8 +26,6 @@ double total_download_time;
 
 /* If non-NULL, the stream to which output should be written.  This
    stream is initialized when `-O' is used.  */
-FILE *output_stream;
-
 bool output_stream_regular;
 
 static struct {
@@ -43,91 +40,20 @@ limit_bandwidth_reset (void)
   xzero (limit_data);
 }
 
-/* Limit the bandwidth by pausing the download for an amount of time.
-   BYTES is the number of bytes received from the network, and TIMER
-   is the timer that started at the beginning of download.  */
-
-static void
-limit_bandwidth (wgint bytes, struct ptimer *timer)
-{
-  double delta_t = ptimer_read (timer) - limit_data.chunk_start;
-  double expected;
-
-  limit_data.chunk_bytes += bytes;
-
-  /* Calculate the amount of time we expect downloading the chunk
-     should take.  If in reality it took less time, sleep to
-     compensate for the difference.  */
-  expected = (double) limit_data.chunk_bytes / opt.limit_rate;
-
-  if (expected > delta_t)
-    {
-      double slp = expected - delta_t + limit_data.sleep_adjust;
-      double t0, t1;
-      if (slp < 0.2)
-        {
-          DEBUGP (("deferring a %.2f ms sleep (%s/%.2f).\n",
-                   slp * 1000, number_to_static_string (limit_data.chunk_bytes),
-                   delta_t));
-          return;
-        }
-      DEBUGP (("\nsleeping %.2f ms for %s bytes, adjust %.2f ms\n",
-               slp * 1000, number_to_static_string (limit_data.chunk_bytes),
-               limit_data.sleep_adjust));
-
-      t0 = ptimer_read (timer);
-      xsleep (slp);
-      t1 = ptimer_measure (timer);
-
-      /* Due to scheduling, we probably slept slightly longer (or
-         shorter) than desired.  Calculate the difference between the
-         desired and the actual sleep, and adjust the next sleep by
-         that amount.  */
-      limit_data.sleep_adjust = slp - (t1 - t0);
-      /* If sleep_adjust is very large, it's likely due to suspension
-         and not clock inaccuracy.  Don't enforce those.  */
-      if (limit_data.sleep_adjust > 0.5)
-        limit_data.sleep_adjust = 0.5;
-      else if (limit_data.sleep_adjust < -0.5)
-        limit_data.sleep_adjust = -0.5;
-    }
-
-  limit_data.chunk_bytes = 0;
-  limit_data.chunk_start = ptimer_read (timer);
-}
-
 /* Write data in BUF to OUT.  However, if *SKIP is non-zero, skip that
    amount of data and decrease SKIP.  Increment *TOTAL by the amount
    of data written.  If OUT2 is not NULL, also write BUF to OUT2.
    In case of error writing to OUT, -1 is returned.  In case of error
    writing to OUT2, -2 is returned.  Return 1 if the whole BUF was
    skipped.  */
-
-static int
-write_data (FILE *out, FILE *out2, const char *buf, int bufsize,
-            wgint *skip, wgint *written)
+static int write_data(FILE *out, const char *buf, int bufsize, wgint *written)
 {
-  if (out == NULL && out2 == NULL)
-    return 1;
-  if (*skip > bufsize)
-    {
-      *skip -= bufsize;
-      return 1;
-    }
-  if (*skip)
-    {
-      buf += *skip;
-      bufsize -= *skip;
-      *skip = 0;
-      if (bufsize == 0)
-        return 1;
-    }
+	if (out == NULL)
+		return 1;
 
-  if (out != NULL)
-    fwrite (buf, 1, bufsize, out);
-  if (out2 != NULL)
-    fwrite (buf, 1, bufsize, out2);
-  *written += bufsize;
+	if (out != NULL)
+		fwrite(buf, 1, bufsize, out);
+	*written += bufsize;
 
   /* Immediately flush the downloaded data.  This should not hinder
      performance: fast downloads will arrive in large 16K chunks
@@ -142,17 +68,13 @@ write_data (FILE *out, FILE *out2, const char *buf, int bufsize,
      it appears to be a clear invitation to poor performance with no
      actual justification.  (Also, why 16K?  Anyone test other values?)
   */
-  if (out != NULL)
-    fflush (out);
-  if (out2 != NULL)
-    fflush (out2);
+	if (out != NULL)
+		fflush(out);
 
-  if (out != NULL && ferror (out))
-    return -1;
-  else if (out2 != NULL && ferror (out2))
-    return -2;
-  else
-    return 0;
+	if (out != NULL && ferror(out))
+		return -1;
+	else
+		return 0;
 }
 
 /* Read the contents of file descriptor FD until it the connection
@@ -179,199 +101,49 @@ write_data (FILE *out, FILE *out2, const char *buf, int bufsize,
    error while reading data, -1 is returned.  In case of error while
    writing data to OUT, -2 is returned.  In case of error while writing
    data to OUT2, -3 is returned.  */
-int fd_read_body (const char *downloaded_filename, int fd, FILE *out, wgint toread, wgint startpos,
+int fd_read_body(int fd, FILE *out, wgint toread, wgint startpos,
               wgint *qtyread, wgint *qtywritten, double *elapsed, int flags)
 {
-	log_debug("BUFSIZ: %d", BUFSIZ);
-	log_debug("fd_read_body downloaded_filename: %s", downloaded_filename);
-	log_debug("fd_read_body toread: %d", toread);
-	log_debug("fd_read_body startpos: %d", startpos);
-	log_debug("fd_read_body qtyread: %d", (qtyread ? *qtyread : -1));
-	log_debug("fd_read_body qtywritten: %d", (qtywritten ? *qtywritten : -1));
-	log_debug("fd_read_body elapsed: %f", (elapsed ? *elapsed : -0.1));
-
 	int ret = 0;
-#undef max
-#define max(a,b) ((a) > (b) ? (a) : (b))
-	int dlbufsize = max (BUFSIZ, 8 * 1024);
+	int dlbufsize = ((BUFSIZ) > (8 * 1024) ? (BUFSIZ) : (8 * 1024));
 	char *dlbuf = xmalloc(dlbufsize);
-
-	struct ptimer *timer = NULL;
-	double last_successful_read_tm = 0;
-
-	/* The progress gauge, set according to the user preferences. */
-	void *progress = NULL;
-
-	/* Non-zero if the progress gauge is interactive, i.e. if it can
-	continually update the display.  When true, smaller timeout
-	values are used so that the gauge can update the display when
-	data arrives slowly. */
-	bool progress_interactive = false;
-
 	bool exact = !!(flags & rb_read_exactly);
 
-	/* Used only by HTTP/HTTPS chunked transfer encoding.  */
-	bool chunked = flags & rb_chunked_transfer_encoding;
-	wgint skip = 0;
 
 	/* How much data we've read/written.  */
 	wgint sum_read = 0;
 	wgint sum_written = 0;
-	wgint remaining_chunk_size = 0;
 
-  	if (flags & rb_skip_startpos)
-		skip = startpos;
-
-	if (opt.show_progress) {
-		const char *filename_progress;
-		/* If we're skipping STARTPOS bytes, pass 0 as the INITIAL
-			argument to progress_create because the indicator doesn't
-			(yet) know about "skipping" data.  */
-		wgint start = skip ? 0 : startpos;
-		if (opt.dir_prefix) {
-			log_debug("opt.dir_prefix: %s", opt.dir_prefix);
-			filename_progress = downloaded_filename + strlen (opt.dir_prefix) + 1;
-		} else
-			filename_progress = downloaded_filename;
-		progress = progress_create(filename_progress, start, start + toread);
-		progress_interactive = progress_interactive_p(progress);
-	}
-
-	log_debug("opt.limit_rate: %d", opt.limit_rate);
-  	if (opt.limit_rate)
-		limit_bandwidth_reset();
-
-	/* A timer is needed for tracking progress, for throttling, and for
-		tracking elapsed time.  If either of these are requested, start
-		the timer.  */
-	if (progress || opt.limit_rate || elapsed) {
-		timer = ptimer_new();
-		last_successful_read_tm = 0;
-	}
-
-	/* Use a smaller buffer for low requested bandwidths.  For example,
-		with --limit-rate=2k, it doesn't make sense to slurp in 16K of
-		data and then sleep for 8s.  With buffer size equal to the limit,
-		we never have to sleep for more than one second.  */
-	if (opt.limit_rate && opt.limit_rate < dlbufsize)
-		dlbufsize = opt.limit_rate;
-
-	/* Read from FD while there is data to read.  Normally toread==0
+	/** Read from FD while there is data to read.  Normally toread==0
 		means that it is unknown how much data is to arrive.  However, if
 		EXACT is set, then toread==0 means what it says: that no data
 		should be read.  */
 	while (!exact || (sum_read < toread)) {
 		int rdsize;
 		double tmout = opt.read_timeout;
-
-		if (chunked) {
-			if (remaining_chunk_size == 0) {
-				char *line = fd_read_line (fd);
-				char *endl;
-				if (line == NULL) {
-					ret = -1;
-					break;
-				}
-
-				remaining_chunk_size = strtol(line, &endl, 16);
-				xfree(line);
-
-				if (remaining_chunk_size < 0) {
-					ret = -1;
-					break;
-				}
-
-				if (remaining_chunk_size == 0) {
-					ret = 0;
-					line = fd_read_line(fd);
-					if (line == NULL)
-						ret = -1;
-					else {
-						xfree (line);
-					}
-					break;
-				}
-			}
-
-			rdsize = MIN (remaining_chunk_size, dlbufsize);
-		} else
-			rdsize = exact ? MIN (toread - sum_read, dlbufsize) : dlbufsize;
-
-		if (progress_interactive) {
-			/* For interactive progress gauges, always specify a ~1s
-				timeout, so that the gauge can be updated regularly even
-				when the data arrives very slowly or stalls.  */
-			tmout = 0.95;
-			// log_debug("opt.read_timeout: %d", opt.read_timeout);
-			if (opt.read_timeout) {
-				double waittm;
-				waittm = ptimer_read (timer) - last_successful_read_tm;
-				if (waittm + tmout > opt.read_timeout) {
-					/* Don't let total idle time exceed read timeout. */
-					tmout = opt.read_timeout - waittm;
-					if (tmout < 0) {
-						/* We've already exceeded the timeout. */
-						ret = -1, errno = ETIMEDOUT;
-						break;
-					}
-				}
-			}
-		}
+		rdsize = exact ? MIN(toread - sum_read, dlbufsize) : dlbufsize;
 
 		ret = fd_read(fd, dlbuf, rdsize, tmout);
-		if (progress_interactive && ret < 0 && errno == ETIMEDOUT)
+		if (ret < 0 && errno == ETIMEDOUT)
 			ret = 0;                /* interactive timeout, handled above */
 		else if (ret <= 0)
 			break;                  /* EOF or read error */
-
-		if (progress || opt.limit_rate || elapsed) {
-			ptimer_measure (timer);
-			if (ret > 0)
-				last_successful_read_tm = ptimer_read (timer);
-		}
 
 		if (ret > 0) {
 			int write_res;
 
 			sum_read += ret;
-			write_res = write_data (out, NULL, dlbuf, ret, &skip, &sum_written);
+			write_res = write_data(out, dlbuf, ret, &sum_written);
 			if (write_res < 0) {
 				ret = (write_res == -3) ? -3 : -2;
 				goto out;
 			}
 		}
-
-		if (chunked) {
-			remaining_chunk_size -= ret;
-			if (remaining_chunk_size == 0) {
-				char *line = fd_read_line (fd);
-				if (line == NULL) {
-					ret = -1;
-					break;
-				} else {
-					xfree (line);
-				}
-			}
-		}
-
-		if (opt.limit_rate)
-			limit_bandwidth (ret, timer);
-
-		if (progress)
-			progress_update (progress, ret, ptimer_read (timer));
 	}
 
 	if (ret < -1)
 		ret = -1;
 out:
-	if (progress)
-		progress_finish(progress, ptimer_read(timer));
-
-	if (elapsed)
-		*elapsed = ptimer_read(timer);
-	if (timer)
-		ptimer_destroy(timer);
-
 	if (qtyread)
 		*qtyread += sum_read;
 	if (qtywritten)
@@ -431,10 +203,10 @@ out:
 
    This function should be used as a building block for other
    functions -- see fd_read_line as a simple example.  */
-char *fd_read_hunk (int fd, hunk_terminator_t terminator, long sizehint, long maxsize)
+char *fd_read_hunk(int fd, hunk_terminator_t terminator, long sizehint, long maxsize)
 {
 	long bufsize = sizehint;
-	char *hunk = xmalloc (bufsize);
+	char *hunk = xmalloc(bufsize);
 	int tail = 0;                 /* tail position in HUNK */
 
 	assert (!maxsize || maxsize >= bufsize);
@@ -456,7 +228,7 @@ char *fd_read_hunk (int fd, hunk_terminator_t terminator, long sizehint, long ma
 		log_info("end: %p", end);
 		if (end) {
 			/* The data contains the terminator: we'll drain the data up
-				to the end of the terminator.  */
+			   to the end of the terminator.  */
 			remain = end - (hunk + tail);
 			log_info("remain: %d", remain);
 			assert (remain >= 0);
@@ -471,8 +243,7 @@ char *fd_read_hunk (int fd, hunk_terminator_t terminator, long sizehint, long ma
 				hunk = xrealloc (hunk, bufsize);
 			}
 		} else
-			/* No terminator: simply read the data we know is (or should
-				be) available.  */
+			/* No terminator: simply read the data we know is (or should be) available.  */
 			remain = pklen;
 
 
@@ -483,7 +254,7 @@ char *fd_read_hunk (int fd, hunk_terminator_t terminator, long sizehint, long ma
 		rdlen = fd_read(fd, hunk + tail, remain, 0);
 		log_info("rdlen: %d", rdlen);
 		if (rdlen < 0) {
-			xfree (hunk);
+			xfree(hunk);
 			return NULL;
 		}
 
@@ -776,45 +547,5 @@ free_urlpos (struct urlpos *l)
       xfree (l);
       l = next;
     }
-}
-
-/* Rotate FNAME opt.backups times */
-void
-rotate_backups(const char *fname)
-{
-#define SEP "."
-#define AVSL 0
-
-  int maxlen = strlen (fname) + sizeof (SEP) + numdigit (opt.backups) + AVSL;
-  char *from = alloca (maxlen);
-  char *to = alloca (maxlen);
-  struct stat sb;
-  int i;
-
-  if (stat (fname, &sb) == 0)
-    if (S_ISREG (sb.st_mode) == 0)
-      return;
-
-  for (i = opt.backups; i > 1; i--)
-    {
-      snprintf (to, maxlen, "%s%s%d", fname, SEP, i);
-      snprintf (from, maxlen, "%s%s%d", fname, SEP, i - 1);
-      if (rename (from, to))
-        logprintf (LOG_NOTQUIET, "Failed to rename %s to %s: (%d) %s\n",
-                   from, to, errno, strerror (errno));
-    }
-
-  snprintf (to, maxlen, "%s%s%d", fname, SEP, 1);
-  if (rename(fname, to))
-    logprintf (LOG_NOTQUIET, "Failed to rename %s to %s: (%d) %s\n",
-               fname, to, errno, strerror (errno));
-}
-
-
-/* Set the file parameter to point to the local file string.  */
-void
-set_local_file (const char **file, const char *default_file)
-{
-    *file = default_file;
 }
 

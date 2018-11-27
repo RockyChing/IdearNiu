@@ -82,13 +82,6 @@ cleanup (void)
 {
   log_close ();
 
-  if (output_stream && output_stream != stderr)
-    {
-      FILE *fp = output_stream;
-      output_stream = NULL;
-      if (fclose (fp) == EOF){}
-    }
-
   /* No need to check for error because Wget flushes its output (and
      checks for errors) after any data arrives.  */
 
@@ -101,7 +94,6 @@ cleanup (void)
      memory which grows with the size of the program.  */
 
 #if defined DEBUG_MALLOC
-  convert_cleanup ();
   res_cleanup ();
   http_cleanup ();
   cleanup_html_url ();
@@ -110,7 +102,6 @@ cleanup (void)
   log_cleanup ();
 
   xfree (opt.choose_config);
-  xfree (opt.dir_prefix);
   free_vec (opt.accepts);
   free_vec (opt.rejects);
   free_vec ((char **)opt.excludes);

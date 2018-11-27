@@ -18,8 +18,6 @@ struct options {
 	bool add_hostdir;             /* Do we add hostname directory? */
 	bool protocol_directories;    /* Whether to prepend "http"/"ftp" to dirs. */
 	bool noclobber;               /* Disables clobbering of existing data. */
-	bool unlink_requested;        /* remove file before clobbering */
-	char *dir_prefix;             /* The top of directory tree */
 	char *lfilename;              /* Log filename */
 	char *choose_config;          /* Specified config file */
 	bool noconfig;                /* Ignore all config files? */

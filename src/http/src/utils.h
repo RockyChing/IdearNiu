@@ -57,7 +57,6 @@ int remove_link (const char *);
 bool file_exists_p (const char *, file_stats_t *);
 bool file_non_directory_p (const char *);
 wgint file_size (const char *);
-int make_directory (const char *);
 char *unique_name (const char *, bool);
 FILE *unique_create (const char *, bool, char **);
 FILE *fopen_excl (const char *, int);
@@ -81,13 +80,6 @@ void wget_read_file_free (struct file_memory *);
 void free_vec (char **);
 char **merge_vecs (char **, char **);
 char **vec_append (char **, const char *);
-
-void string_set_add (struct hash_table *, const char *);
-int string_set_contains (struct hash_table *, const char *);
-void string_set_to_array (struct hash_table *, char **);
-void string_set_free (struct hash_table *);
-void free_keys_and_values (struct hash_table *);
-
 const char *with_thousand_seps (wgint);
 
 /* human_readable must be able to accept wgint and SUM_SIZE_INT
@@ -110,7 +102,6 @@ int determine_screen_width (void);
 int random_number (int);
 double random_float (void);
 
-bool run_with_timeout (double, void (*) (void *), void *);
 void xsleep (double);
 
 /* How many bytes it will take to store LEN bytes in base64.  */

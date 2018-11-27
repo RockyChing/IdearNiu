@@ -12,7 +12,6 @@
 #include <sys/types.h>
 
 #include "log.h"
-#include "hash.h"
 #include "http.h"
 #include "utils.h"
 #include "url.h"
@@ -330,23 +329,6 @@ request_free (struct request **req_ref)
   *req_ref = NULL;
 }
 
-static struct hash_table *basic_authed_hosts;
-
-static void
-register_basic_auth_host (const char *hostname)
-{
-  if (!basic_authed_hosts)
-    {
-      basic_authed_hosts = make_nocase_string_hash_table (1);
-    }
-  if (!hash_table_contains (basic_authed_hosts, hostname))
-    {
-      hash_table_put (basic_authed_hosts, xstrdup (hostname), NULL);
-      DEBUGP (("Inserted %s into basic_authed_hosts\n", hostname));
-    }
-}
-
-
 /* Send the contents of FILE_NAME to SOCK.  Make sure that exactly
    PROMISED_SIZE bytes are sent over the wire -- if the file is
    longer, read only that much; if the file is shorter, report an error.
@@ -415,15 +397,15 @@ static const char *response_head_terminator (const char *start, const char *peek
 {
 	const char *p, *end;
 	/* If at first peek, verify whether HUNK starts with "HTTP".  If
-		not, this is a HTTP/0.9 request and we must bail out without
-		reading anything.  */
+	   not, this is a HTTP/0.9 request and we must bail out without
+	   reading anything.  */
 	if (start == peeked && 0 != memcmp(start, "HTTP", MIN(peeklen, 4)))
-	return start;
+		return start;
 
 	/* Look for "\n[\r]\n", and return the following position if found.
-		Start two chars before the current to cover the possibility that
-		part of the terminator (e.g. "\n\r") arrived in the previous
-		batch.  */
+	   Start two chars before the current to cover the possibility that
+	   part of the terminator (e.g. "\n\r") arrived in the previous
+	   batch.  */
 	p = peeked - start < 2 ? start : peeked - 2;
 	end = peeked + peeklen;
 
@@ -458,7 +440,7 @@ static const char *response_head_terminator (const char *start, const char *peek
    that the data begins with "HTTP".  If this is not the case, no data
    is read and an empty request is returned, so that the remaining
    data can be treated as body.  */
-static char *read_http_response_head (int fd)
+static char *read_http_response_head(int fd)
 {
   	return fd_read_hunk(fd, response_head_terminator, 512, HTTP_RESPONSE_MAX_SIZE);
 }
@@ -497,12 +479,12 @@ static struct response *resp_new (char *head)
 	char *hdr;
   	int count, size;
 
-  	struct response *resp = xnew0 (struct response);
+  	struct response *resp = xnew0(struct response);
   	resp->data = head;
 
 	if (*head == '\0') {
       	/* Empty head means that we're dealing with a headerless
-         	(HTTP/0.9) response.  In that case, don't set HEADERS at all.  */
+           (HTTP/0.9) response.  In that case, don't set HEADERS at all.  */
 		return resp;
     }
 
@@ -1312,15 +1294,6 @@ static bool persistent_available_p(const char *host, int port, bool ssl, bool *h
 		body in response to HEAD, or if it sends more than conent-length
 		data, we won't reuse the corrupted connection.)  */
 
-	if (!test_socket_open(pconn.socket)) {
-		/* Oops, the socket is no longer open.  Now that we know that,
-		let's invalidate the persistent connection before returning
-		0.  */
-		invalidate_persistent();
-		func_exit();
-		return false;
-	}
-
 	func_exit();
 	return true;
 }
@@ -1398,8 +1371,6 @@ struct http_stat {
 
 	encoding_t local_encoding;    /* the encoding of the local file */
 	encoding_t remote_encoding;   /* the encoding of the remote file */
-
-	bool temporary;               /* downloading a temporary file */
 };
 
 static void free_hstat (struct http_stat *hs)
@@ -1428,69 +1399,29 @@ get_file_flags (const char *filename, int *dt)
 
 /* Download the response body from the socket and writes it to
    an output file.  The headers have already been read from the
-   socket.  If WARC is enabled, the response body will also be
-   written to a WARC response record.
-
-   hs, contlen, contrange, chunked_transfer_encoding and url are
-   parameters from the gethttp method.  fp is a pointer to the
-   output file.
+   socket. fp is a pointer to the output file.
 
    url, warc_timestamp_str, warc_request_uuid, warc_ip, type
    and statcode will be saved in the headers of the WARC record.
    The head parameter contains the HTTP headers of the response.
 
-   If fp is NULL and WARC is enabled, the response body will be
-   written only to the WARC file.  If WARC is disabled and fp
-   is a file pointer, the data will be written to the file.
-   If fp is a file pointer and WARC is enabled, the body will
-   be written to both destinations.
-
    Returns the error code.   */
-static int read_response_body (struct http_stat *hs, int sock, FILE *fp, wgint contlen,
-                    wgint contrange, bool chunked_transfer_encoding,
-                    char *url, char *warc_request_uuid,
-                    ip_address *warc_ip, char *type, int statcode, char *head)
+static int read_response_body(struct http_stat *hs, int sock, FILE *fp, wgint contlen)
 {
 	int flags = 0;
 
-	if (fp != NULL) {
-		/* This confuses the timestamping code that checks for file size.
-			#### The timestamping code should be smarter about file size.  */
-		if (opt.save_headers && hs->restval == 0)
-			fwrite (head, 1, strlen (head), fp);
-	}
-
 	/* Read the response body.  */
-	log_debug("contlen: %d", contlen);
-	log_debug("contrange: %d", contrange);
-	log_debug("restval: %d", hs->restval);
 	if (contlen != -1)
-		/* If content-length is present, read that much; otherwise, read
+		/** If content-length is present, read that much; otherwise, read
 			until EOF.  The HTTP spec doesn't require the server to
 			actually close the connection when it's done sending data. */
 		flags |= rb_read_exactly;
 
-	if (fp != NULL && hs->restval > 0 && contrange == 0)
-		/* If the server ignored our range request, instruct fd_read_body
-		to skip the first RESTVAL bytes of body.  */
-		flags |= rb_skip_startpos;
-
-	log_debug("chunked_transfer_encoding: %d", chunked_transfer_encoding);
-	if (chunked_transfer_encoding)
-		flags |= rb_chunked_transfer_encoding;
-
-	log_debug("remote_encoding: %d", hs->remote_encoding);
-	if (hs->remote_encoding == ENC_GZIP)
-		flags |= rb_compressed_gzip;
-
 	hs->len = hs->restval;
  	hs->rd_size = 0;
-	/* Download the response body and write it to fp.
-		If we are working on a WARC file, we simultaneously write the
-		response body to warc_tmp.  */
-	hs->res = fd_read_body (hs->local_file, sock, fp, (contlen != -1 ? contlen : 0),
+	/* Download the response body and write it to fp.*/
+	hs->res = fd_read_body(sock, fp, (contlen != -1 ? contlen : 0),
 			hs->restval, &hs->rd_size, &hs->len, &hs->dltime, flags);
-	log_debug("fd_read_body res: %d", hs->res);
 	if (hs->res >= 0) {
 		return RETRFINISHED;
 	}
@@ -1839,8 +1770,6 @@ static uerr_t establish_connection(const struct url *u, const struct url **conn_
 static uerr_t
 set_file_timestamp (struct http_stat *hs)
 {
-  size_t filename_len = strlen (hs->local_file);
-  char *filename_plus_orig_suffix = alloca (filename_len + sizeof (ORIG_SFX));
   bool local_dot_orig_file_exists = false;
   char *local_filename = NULL;
   struct stat st;
@@ -1882,24 +1811,16 @@ check_file_output (const struct url *u, struct http_stat *hs,
         {
           /* The Content-Disposition header is missing or broken.
            * Choose unique file name according to given URL. */
-          hs->local_file = url_file_name (u, NULL);
+          hs->local_file = url_file_name (u);
         }
       else
         {
           DEBUGP (("Parsed filename from Content-Disposition: %s\n",
                   local_file));
-          hs->local_file = url_file_name (u, local_file);
+          hs->local_file = url_file_name (u);
         }
 
       xfree (local_file);
-    }
-
-  hs->temporary = !acceptable (hs->local_file);
-  if (hs->temporary)
-    {
-      char *tmp = aprintf ("%s.tmp", hs->local_file);
-      xfree (hs->local_file);
-      hs->local_file = tmp;
     }
 
   /* TODO: perform this check only once. */
@@ -2023,9 +1944,6 @@ check_auth (const struct url *u, char *user, char *passwd, struct response *resp
 
               if (!u->user && BEGINS_WITH (www_authenticate, "Basic"))
                 {
-                  /* Need to register this host as using basic auth,
-                   * so we automatically send creds next time. */
-                  register_basic_auth_host (u->host);
                 }
 
               xfree (pth);
@@ -2053,48 +1971,35 @@ check_auth (const struct url *u, char *user, char *passwd, struct response *resp
 
 static uerr_t open_output_stream (struct http_stat *hs, int count, FILE **fp)
 {
-#define FOPEN_BIN_FLAG true
-
 	/* Open the local file.  */
-	if (!output_stream) {
-		mkalldirs (hs->local_file);
-		if (opt.backups)
-			rotate_backups (hs->local_file);
-		if (hs->restval) {
-			*fp = fopen (hs->local_file, "ab");
-		} else if (ALLOW_CLOBBER || count > 0) {
-			if (opt.unlink_requested && file_exists_p (hs->local_file, NULL)) {
-				if (unlink (hs->local_file) < 0) {
-					logprintf (LOG_NOTQUIET, "%s: %s\n", hs->local_file, strerror (errno));
-					return UNLINKERR;
-				}
-			}
-			if (hs->temporary) {
-				*fp = fdopen (open (hs->local_file, O_BINARY | O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR), "wb");
-			} else {
-				*fp = fopen (hs->local_file, "wb");
-			}
-		} else {
-			*fp = fopen_excl (hs->local_file, FOPEN_BIN_FLAG);
-			if (!*fp && errno == EEXIST) {
-				/* We cannot just invent a new name and use it (which is
-					what functions like unique_create typically do)
-					because we told the user we'd use this name.
-					Instead, return and retry the download.  */
-				logprintf (LOG_NOTQUIET, "%s has sprung into existence.\n", hs->local_file);
-				return FOPEN_EXCL_ERR;
+	if (1) {
+		if (file_exists_p(hs->local_file, NULL)) {
+			if (unlink (hs->local_file) < 0) {
+				log_error("%s unlink error: %s\n", hs->local_file, strerror(errno));
+				return UNLINKERR;
 			}
 		}
 
-		if (!*fp) {
-			logprintf (LOG_NOTQUIET, "%s: %s\n", hs->local_file, strerror (errno));
-			return FOPENERR;
+		*fp = fopen(hs->local_file, "wb");
+	} else {
+		*fp = fopen_excl(hs->local_file, true);
+		if (!*fp && errno == EEXIST) {
+			/* We cannot just invent a new name and use it (which is
+			   what functions like unique_create typically do)
+			   because we told the user we'd use this name.
+			   Instead, return and retry the download.  */
+			log_error("%s has sprung into existence.\n", hs->local_file);
+			return FOPEN_EXCL_ERR;
 		}
-	} else
-		*fp = output_stream;
+	}
+
+	if (!*fp) {
+		log_error("%s: %s\n", hs->local_file, strerror (errno));
+		return FOPENERR;
+	}
 
 	/* Print fetch message, if opt.verbose.  */
-	logprintf (LOG_VERBOSE, "Saving to: %s\n", HYPHENP(hs->local_file) ? "STDOUT" : hs->local_file);
+	log_info("Saving to: %s\n", HYPHENP(hs->local_file) ? "STDOUT" : hs->local_file);
 
 	return RETROK;
 }
@@ -2128,7 +2033,7 @@ static void set_content_type (int *dt, const char *type)
 
    If PROXY is non-NULL, the connection will be made to the proxy
    server, and u->url will be requested.  */
-static uerr_t gethttp (const struct url *u, struct url *original_url, struct http_stat *hs, int *dt, int count)
+static uerr_t gethttp(const struct url *u, struct url *original_url, struct http_stat *hs, int *dt, int count)
 {
 	struct request *req = NULL;
 
@@ -2167,9 +2072,6 @@ static uerr_t gethttp (const struct url *u, struct url *original_url, struct htt
 	struct response *resp = NULL;
 	char hdrval[512];
 	char *message = NULL;
-
-	char warc_request_uuid [48];
-	ip_address *warc_ip = NULL;
 
 	/* Whether this connection will be kept alive after the HTTP request is done. */
 	bool keep_alive;
@@ -2213,7 +2115,7 @@ static uerr_t gethttp (const struct url *u, struct url *original_url, struct htt
 
 	/* init HTTP request */ 
     uerr_t ret;
-    req = initialize_request (u, hs, dt, NULL, inhibit_keep_alive,
+    req = initialize_request(u, hs, dt, NULL, inhibit_keep_alive,
 			&basic_auth_finished, &body_data_size, &user, &passwd, &ret);
 	if (req == NULL) {
 		retval = ret;
@@ -2250,7 +2152,7 @@ retry_with_auth:
 		goto cleanup;
 	}
 
-	logprintf(LOG_VERBOSE, "%s request sent, awaiting response... \n", "HTTP");
+	log_debug("%s request sent, awaiting response... \n", "HTTP");
 	contlen = -1;
 	contrange = 0;
 	*dt &= ~RETROKF;
@@ -2342,24 +2244,23 @@ retry_with_auth:
        	   when we're done.  This means that we can register it.  */
     	register_persistent (conn->host, conn->port, sock, using_ssl);
 
-	if (statcode == HTTP_STATUS_UNAUTHORIZED)
-	{
+	if (statcode == HTTP_STATUS_UNAUTHORIZED) {
 		/* Authorization is required.  */
 		uerr_t auth_err = RETROK;
 		bool retry;
 		/* Since WARC is disabled, we are not interested in the response body.  */
-		if (keep_alive && !head_only && skip_short_body (sock, contlen, chunked_transfer_encoding))
-			CLOSE_FINISH (sock);
+		if (keep_alive && !head_only && skip_short_body(sock, contlen, chunked_transfer_encoding))
+			CLOSE_FINISH(sock);
 		else
-			CLOSE_INVALIDATE (sock);
+			CLOSE_INVALIDATE(sock);
 
 		pconn.authorized = false;
-		auth_err = check_auth (u, user, passwd, resp, req, &retry, &basic_auth_finished, &auth_finished);
+		auth_err = check_auth(u, user, passwd, resp, req, &retry, &basic_auth_finished, &auth_finished);
 		if (auth_err == RETROK && retry) {
-			xfree (hs->message);
-			resp_free (&resp);
-			xfree (message);
-			xfree (head);
+			xfree(hs->message);
+			resp_free(&resp);
+			xfree(message);
+			xfree(head);
 			goto retry_with_auth;
 		}
 		if (auth_err == RETROK)
@@ -2608,10 +2509,10 @@ retry_with_auth:
 	log_debug("opt.verbose: %d", opt.verbose);
 	if (opt.verbose) {
 		if (*dt & RETROKF) {
-		/* No need to print this output if the body won't be
-			downloaded at all, or if the original server response is
-			printed.  */
-			logputs(LOG_VERBOSE, ("Length: "));
+			/* No need to print this output if the body won't be
+			   downloaded at all, or if the original server response is
+			   printed.  */
+			logputs(LOG_VERBOSE, "Length: ");
 			if (contlen != -1) {
 				logputs(LOG_VERBOSE, number_to_static_string(contlen + contrange));
 			if (contlen + contrange >= 1024)
@@ -2668,17 +2569,11 @@ retry_with_auth:
 		goto cleanup;
 	}
 
-	err = read_response_body(hs, sock, fp, contlen, contrange,
-			chunked_transfer_encoding, u->url,
-			warc_request_uuid, warc_ip, type, statcode, head);
-
+	err = read_response_body(hs, sock, fp, contlen);
 	if (hs->res >= 0)
 		CLOSE_FINISH (sock);
 	else
 		CLOSE_INVALIDATE (sock);
-
-	if (!output_stream)
-		fclose (fp);
 
 	retval = err;
 
@@ -2738,7 +2633,7 @@ uerr_t http_loop (const struct url *u, struct url *original_url, char **newloc,
 	hstat.referer = referer;
 
 	if (!opt.content_disposition) {
-		hstat.local_file = url_file_name(u, NULL);
+		hstat.local_file = url_file_name(u);
 		log_info("local_file： %s", hstat.local_file);
 		got_name = true;
 	}
@@ -2890,7 +2785,6 @@ uerr_t http_loop (const struct url *u, struct url *original_url, char **newloc,
 	case WARC_TMP_FOPENERR: case WARC_TMP_FWRITEERR:
 	/* A fatal WARC error. */
 	logputs (LOG_VERBOSE, "\n");
-	logprintf (LOG_NOTQUIET, "Cannot write to temporary WARC file.\n");
 	ret = err;
 	goto exit;
 	case CONSSLERR:
@@ -3047,7 +2941,6 @@ uerr_t http_loop (const struct url *u, struct url *original_url, char **newloc,
 	((hstat.res == 0) && (hstat.contlen == -1))))
 	{
 	const char *fl = NULL;
-	set_local_file (&fl, hstat.local_file);
 	if (fl)
 	{
 	time_t newtmr = -1;

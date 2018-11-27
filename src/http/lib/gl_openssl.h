@@ -1,32 +1,13 @@
-/* Wrap openssl crypto hash routines in gnulib interface.  -*- coding: utf-8 -*-
-
-   Copyright (C) 2013-2018 Free Software Foundation, Inc.
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-
-/* Written by Pádraig Brady */
-
 #ifndef GL_OPENSSL_NAME
-# error "Please define GL_OPENSSL_NAME to 1,5,256 etc."
+#error "Please define GL_OPENSSL_NAME to 1,5,256 etc."
 #endif
 
 #ifndef _GL_INLINE_HEADER_BEGIN
-# error "Please include config.h first."
+#error "Please include config.h first."
 #endif
 _GL_INLINE_HEADER_BEGIN
 #ifndef GL_OPENSSL_INLINE
-# define GL_OPENSSL_INLINE _GL_INLINE
+#define GL_OPENSSL_INLINE _GL_INLINE
 #endif
 
 /* Concatenate two preprocessor tokens.  */
@@ -34,31 +15,31 @@ _GL_INLINE_HEADER_BEGIN
 #define _GLCRYPTO_CONCAT(prefix, suffix) _GLCRYPTO_CONCAT_ (prefix, suffix)
 
 #if GL_OPENSSL_NAME == 5
-# define OPENSSL_ALG md5
+#define OPENSSL_ALG md5
 #else
-# define OPENSSL_ALG _GLCRYPTO_CONCAT (sha, GL_OPENSSL_NAME)
+#define OPENSSL_ALG _GLCRYPTO_CONCAT (sha, GL_OPENSSL_NAME)
 #endif
 
 /* Context type mappings.  */
 #if BASE_OPENSSL_TYPE != GL_OPENSSL_NAME
-# undef BASE_OPENSSL_TYPE
-# if GL_OPENSSL_NAME == 224
-#  define BASE_OPENSSL_TYPE 256
-# elif GL_OPENSSL_NAME == 384
-#  define BASE_OPENSSL_TYPE 512
-# endif
-# define md5_CTX MD5_CTX
-# define sha1_CTX SHA_CTX
-# define sha224_CTX SHA256_CTX
-# define sha224_ctx sha256_ctx
-# define sha256_CTX SHA256_CTX
-# define sha384_CTX SHA512_CTX
-# define sha384_ctx sha512_ctx
-# define sha512_CTX SHA512_CTX
-# undef _gl_CTX
-# undef _gl_ctx
-# define _gl_CTX _GLCRYPTO_CONCAT (OPENSSL_ALG, _CTX) /* openssl type.  */
-# define _gl_ctx _GLCRYPTO_CONCAT (OPENSSL_ALG, _ctx) /* gnulib type.  */
+#undef BASE_OPENSSL_TYPE
+#if GL_OPENSSL_NAME == 224
+#define BASE_OPENSSL_TYPE 256
+#elif GL_OPENSSL_NAME == 384
+#define BASE_OPENSSL_TYPE 512
+#endif
+#define md5_CTX MD5_CTX
+#define sha1_CTX SHA_CTX
+#define sha224_CTX SHA256_CTX
+#define sha224_ctx sha256_ctx
+#define sha256_CTX SHA256_CTX
+#define sha384_CTX SHA512_CTX
+#define sha384_ctx sha512_ctx
+#define sha512_CTX SHA512_CTX
+#undef _gl_CTX
+#undef _gl_ctx
+#define _gl_CTX _GLCRYPTO_CONCAT (OPENSSL_ALG, _CTX) /* openssl type.  */
+#define _gl_ctx _GLCRYPTO_CONCAT (OPENSSL_ALG, _ctx) /* gnulib type.  */
 
 struct _gl_ctx { _gl_CTX CTX; };
 #endif
@@ -74,8 +55,7 @@ struct _gl_ctx { _gl_CTX CTX; };
 #define OPENSSL_FN(suffix) _GLCRYPTO_CONCAT (_GLCRYPTO_PREFIX, suffix)
 #define GL_CRYPTO_FN(suffix) _GLCRYPTO_CONCAT (OPENSSL_ALG, suffix)
 
-GL_OPENSSL_INLINE void
-GL_CRYPTO_FN (_init_ctx) (struct _gl_ctx *ctx)
+GL_OPENSSL_INLINE void GL_CRYPTO_FN (_init_ctx) (struct _gl_ctx *ctx)
 { (void) OPENSSL_FN (_Init) ((_gl_CTX *) ctx); }
 
 /* These were never exposed by gnulib.  */
@@ -114,3 +94,4 @@ GL_CRYPTO_FN (_read_ctx) (const struct _gl_ctx *ctx, void *res)
 #undef GL_OPENSSL_NAME
 
 _GL_INLINE_HEADER_END
+
