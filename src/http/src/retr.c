@@ -15,8 +15,6 @@
 #include "host.h"
 #include "connect.h"
 #include "convert.h"
-#include "ptimer.h"
-#include "progress.h"
 
 /* Total size of downloaded files.  Used to enforce quota.  */
 SUM_SIZE_INT total_downloaded_bytes;
@@ -362,13 +360,6 @@ calc_rate (wgint bytes, double secs, int *units)
 
   assert (secs >= 0);
   assert (bytes >= 0);
-
-  if (secs == 0)
-    /* If elapsed time is exactly zero, it means we're under the
-       resolution of the timer.  This can easily happen on systems
-       that use time() for the timer.  Since the interval lies between
-       0 and the timer's resolution, assume half the resolution.  */
-    secs = ptimer_resolution () / 2.0;
 
   dlrate = convert_to_bits (bytes) / secs;
   if (dlrate < bibyte)

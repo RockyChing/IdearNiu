@@ -30,7 +30,6 @@
 #include "res.h"                /* for res_cleanup */
 #include "http.h"               /* for http_cleanup */
 #include "retr.h"               /* for output_stream */
-#include "ptimer.h"             /* for ptimer_destroy */
 
 /* Reset the variables to default values.  */
 void defaults(void)
@@ -70,7 +69,6 @@ void defaults(void)
 
   /* Use a negative value to mark the absence of --start-pos option */
   opt.start_pos = -1;
-  opt.show_progress = -1;
   opt.noscroll = false;
 }
 

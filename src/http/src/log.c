@@ -243,7 +243,7 @@ saved_append (const char *s)
   switch (x)                                    \
     {                                           \
     case LOG_PROGRESS:                          \
-      if (!opt.show_progress)                   \
+      if (1)                   \
         return;                                 \
       break;                                    \
     case LOG_ALWAYS:                            \
@@ -278,8 +278,6 @@ get_log_fp (void)
 static FILE *
 get_progress_fp (void)
 {
-  if (opt.show_progress == true)
-      return stderr;
   return get_log_fp();
 }
 

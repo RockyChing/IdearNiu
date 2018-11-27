@@ -2980,7 +2980,6 @@ uerr_t http_loop (const struct url *u, struct url *original_url, char **newloc,
 	number_to_static_string (hstat.contlen),
 	hstat.local_file, count);
 	}
-	++numurls;
 	total_downloaded_bytes += hstat.rd_size;
 
 	/* Remember that we downloaded the file for later ".orig" code. */
@@ -3012,7 +3011,6 @@ uerr_t http_loop (const struct url *u, struct url *original_url, char **newloc,
 	tms, u->url, number_to_static_string (hstat.len),
 	hstat.local_file, count);
 	}
-	++numurls;
 	total_downloaded_bytes += hstat.rd_size;
 
 	/* Remember that we downloaded the file for later ".orig" code. */

@@ -10,7 +10,6 @@
 #include "url.h"
 #include "recur.h"
 #include "utils.h"
-#include "ptimer.h"
 #include "res.h"
 
 static const char *replace_plain (const char*, int, FILE*, const char *);

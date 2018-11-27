@@ -18,17 +18,10 @@
 #include "url.h"
 #include "convert.h"
 #include "http.h"               /* for save_cookies */
-#include "ptimer.h"
 #include <getopt.h>
 
 struct options opt;
 const char *exec_name;
-
-/* Number of successfully downloaded URLs */
-int numurls = 0;
-
-struct ptimer *timer;
-
 
 static void http_dload(const char *durl)
 {
@@ -68,9 +61,6 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 
-	timer = ptimer_new();
-	ptimer_measure(timer);
-
 	/* Load the hard-coded defaults.  */
 	defaults();
 
@@ -81,14 +71,7 @@ int main(int argc, char **argv)
 	interoption dependency checks. */
 
 	debug("opt.verbose: %d\n", opt.verbose);
-	debug("opt.show_progress: %d\n", opt.show_progress);
     opt.verbose = 1;
-    opt.show_progress = -1;
-
-	/* Initialize progress.  Have to do this after the options are
-		processed so we know where the log file is.  */
-	if (opt.show_progress)
-		set_progress_implementation (opt.progress_type);
 
 	http_dload(argv[1]);
 

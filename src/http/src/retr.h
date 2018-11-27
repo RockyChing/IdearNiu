@@ -32,7 +32,6 @@ as that of the covered work.  */
 
 #include "url.h"
 
-extern int numurls;
 
 /* These global vars should be made static to retr.c and exported via
    functions! */

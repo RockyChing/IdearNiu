@@ -19,7 +19,6 @@
 #include "utils.h"
 #include "host.h"
 #include "url.h"
-#include "ptimer.h"
 
 #ifndef NO_ADDRESS
 #define NO_ADDRESS NO_DATA
