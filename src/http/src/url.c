@@ -13,6 +13,9 @@
 
 #include <langinfo.h>
 
+
+//  <scheme>://<host>[:<port>]/<path>[?<query>]
+
   /* Get the optional parts of URL, each part being delimited by
      current location and the position of the next separator.  */
 #define get_url_part(sepchar, var) do {                         \
@@ -634,7 +637,7 @@ static const char *parse_errors[] = {
    Return a new struct url if successful, NULL on error.  In case of
    error, and if ERROR is not NULL, also set *ERROR to the appropriate
    error code. */
-struct url *url_parse (const char *url, int *error, bool percent_encode)
+struct url *url_parse(const char *url, bool percent_encode)
 {
 	struct url *u;
 	const char *p;
@@ -720,7 +723,6 @@ struct url *url_parse (const char *url, int *error, bool percent_encode)
     } else {
 		p = strpbrk_or_eos(p, seps);
 		host_e = p;
-		debug("host_e: %s", host_e);
     }
 
 	// seps = ":/?#"
@@ -791,16 +793,16 @@ struct url *url_parse (const char *url, int *error, bool percent_encode)
 	  	}
 	}
 
-	u = xnew0 (struct url);
+	u = xnew0(struct url);
 	u->scheme = scheme;
 	u->host   = strdupdelim(host_b, host_e);
 	u->port   = port;
 	u->user   = user;
 	u->passwd = passwd;
-	u->path = strdupdelim (path_b, path_e);
+	u->path = strdupdelim(path_b, path_e);
 	split_path(u->path, &u->dir, &u->file);
 
-	host_modified = lowercase_str (u->host);
+	host_modified = lowercase_str(u->host);
 
 	/* Decode %HH sequences in host name.  This is important not so much
 	   to support %HH sequences in host names (which other browser
@@ -848,10 +850,6 @@ struct url *url_parse (const char *url, int *error, bool percent_encode)
 	/* Cleanup in case of error: */
 	if (url_encoded && url_encoded != url)
 		xfree (url_encoded);
-
-	/* Transmit the error code to the caller, if the caller wants to know.  */
-	if (error)
-		*error = error_code;
 	return NULL;
 }
 
@@ -1797,6 +1795,31 @@ are_urls_equal (const char *u1, const char *u2)
   return (*p == 0 && *q == 0 ? true : false);
 }
 
-/*
- * vim: et ts=2 sw=2
- */
+void dump_struct_url(const struct url *url)
+{
+	const char *schem_str[] = {
+		"HTTP",
+#ifdef HAVE_SSL
+  		"HTTPS",
+#endif
+		"FTP",
+#ifdef HAVE_SSL
+		"FTPS",
+#endif
+		"INVALID"
+	};
+
+	log_info("Original URL: %s", url->url);
+	log_info("URL scheme: %s", schem_str[url->scheme]);
+	log_info("Hostname: %s", url->host);
+	log_info("Port: %d", url->port);
+	log_info("path: %s", url->path);
+	log_info("params: %s", url->params);
+	log_info("query: %s", url->query);
+	log_info("fragment: %s", url->fragment);
+	log_info("dir: %s", url->dir);
+	log_info("file: %s", url->file);
+	log_info("user: %s", url->user);
+	log_info("passwd: %s", url->passwd);
+}
+

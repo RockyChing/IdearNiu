@@ -77,7 +77,7 @@ char *url_escape_unsafe_and_reserved (const char *);
 void url_unescape (char *);
 void url_unescape_except_reserved (char *);
 
-struct url *url_parse (const char *, int *, bool percent_encode);
+struct url *url_parse (const char *, bool percent_encode);
 char *url_full_path (const struct url *);
 void url_set_dir (struct url *, const char *);
 void url_set_file (struct url *, const char *);
@@ -100,5 +100,7 @@ char *rewrite_shorthand_url (const char *);
 bool schemes_are_similar_p (enum url_scheme a, enum url_scheme b);
 
 bool are_urls_equal (const char *u1, const char *u2);
+
+void dump_struct_url(const struct url *url);
 
 #endif /* URL_H */

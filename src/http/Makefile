@@ -28,8 +28,10 @@ CXX = g++
 ifeq ($(SRCTYPE), cpp)
 CC = g++
 else
-CC = gcc -g -fmax-errors=1
+CC = gcc -g -Wall -fmax-errors=1
 endif
+
+#-Werror 
 
 CFLAGS = -I./lib -I./src  -Wall -Wno-unused-function
 #CFLAGS += -DENABLE_DEBUG=1 -DHAVE_LIBSSL=1 -DHAVE_LOCALTIME_R=1 -DHAVE_LONG_LONG_INT=1

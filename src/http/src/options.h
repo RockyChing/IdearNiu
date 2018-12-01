@@ -83,13 +83,6 @@ struct options {
 	char *referer;                /* Naughty Referer, which can be
 	                               set to something other than
 	                               NULL. */
-
-	char *dot_style;
-	wgint dot_bytes;              /* How many bytes in a printing
-	                               dot. */
-	int dots_in_line;             /* How many dots in one line. */
-	int dot_spacing;              /* How many dots between spacings. */
-
 #ifdef HAVE_SSL
 	enum {
 		secure_protocol_auto,

@@ -57,14 +57,11 @@ typedef const char *(*hunk_terminator_t) (const char *, const char *, int);
 char *fd_read_hunk (int, hunk_terminator_t, long, long);
 char *fd_read_line (int);
 
-uerr_t retrieve_url (struct url *, char **, char **,
-                     const char *, int *, bool, bool);
+uerr_t retrieve_url(struct url *);
 uerr_t retrieve_from_file (const char *, bool, int *);
 
 const char *retr_rate (wgint, double);
 double calc_rate (wgint, double, int *);
 void printwhat (int, int);
-
-void sleep_between_retrievals (int);
 
 #endif /* RETR_H */

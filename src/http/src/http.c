@@ -1429,9 +1429,6 @@ static int read_response_body(struct http_stat *hs, int sock, FILE *fp, wgint co
 	if (hs->res == -2) {
 		/* Error while writing to fd. */
 		return FWRITEERR;
-	} else if (hs->res == -3) {
-		/* Error while writing to warc_tmp. */
-		return WARC_TMP_FWRITEERR;
 	} else {
 		/* A read error! */
 		hs->rderrmsg = xstrdup(fd_errstr (sock));
@@ -1551,7 +1548,7 @@ static struct request *initialize_request(const struct url *u, struct http_stat 
 		request_set_header(req, "If-Modified-Since", xstrdup (strtime), rel_value);
 	}
 
-	printf("restval: %d\n", hs->restval);
+	printf("restval: %ld\n", hs->restval);
 	if (hs->restval)
     	request_set_header(req, "Range", aprintf("bytes=%s-",
                                  number_to_static_string (hs->restval)), rel_value);
@@ -2141,18 +2138,14 @@ retry_with_auth:
 
 	/* Send the request to server.  */
 	write_error = request_send(req, sock);
-	log_info("request_send ret: %d", write_error);
 	if (write_error < 0) {
 		CLOSE_INVALIDATE(sock);
 
-		if (write_error == -2)
-			retval = WARC_TMP_FWRITEERR;
-		else
-			retval = WRITEFAILED;
+		retval = WRITEFAILED;
 		goto cleanup;
 	}
 
-	log_debug("%s request sent, awaiting response... \n", "HTTP");
+	log_info("%s request sent, awaiting response... \n", "HTTP");
 	contlen = -1;
 	contrange = 0;
 	*dt &= ~RETROKF;
@@ -2588,28 +2581,11 @@ cleanup:
 	return retval;
 }
 
-/* Check whether the supplied HTTP status code is among those
-   listed for the --retry-on-http-error option. */
-static bool
-check_retry_on_http_error (const int statcode)
-{
-  const char *tok = NULL;
-  while (tok && *tok)
-    {
-      if (atoi (tok) == statcode)
-        return true;
-      if ((tok = strchr (tok, ',')))
-        ++tok;
-    }
-  return false;
-}
-
 /* The genuine HTTP loop!  This is the part where the retrieval is
    retried, and retried, and retried, and...  */
-uerr_t http_loop (const struct url *u, struct url *original_url, char **newloc,
-           char **local_file, const char *referer, int *dt)
+uerr_t http_loop(const struct url *u, struct url *original_url)
 {
-	int count;
+	int count, dt;
 	bool got_head = false;         /* used for time-stamping and filename detection */
 	bool time_came_from_head = false;
 	bool got_name = false;
@@ -2622,32 +2598,26 @@ uerr_t http_loop (const struct url *u, struct url *original_url, char **newloc,
 	bool send_head_first = true;
 	bool force_full_retrieve = false;
 
-	/* Assert that no value for *LOCAL_FILE was passed. */
-	assert (local_file == NULL || *local_file == NULL);
-
-	/* Reset NEWLOC parameter. */
-	*newloc = NULL;
-
 	/* Setup hstat struct. */
 	xzero(hstat);
-	hstat.referer = referer;
+	hstat.referer = NULL;
 
 	if (!opt.content_disposition) {
 		hstat.local_file = url_file_name(u);
 		log_info("local_file： %s", hstat.local_file);
-		got_name = true;
+		got_name = hstat.local_file != NULL;
 	}
 
 	/* Reset the counter. */
 	count = 0;
 
 	/* Reset the document type. */
-	*dt = 0;
+	dt = 0;
 
 	send_head_first = false;
 
 	/* Send preliminary HEAD request if --content-disposition and -c are used
-	together.  */
+	   together.  */
 	if (opt.content_disposition && opt.always_rest)
 		send_head_first = true;
 
@@ -2655,7 +2625,7 @@ uerr_t http_loop (const struct url *u, struct url *original_url, char **newloc,
 		/* Use conditional get request if requested
 		 * and if timestamp is known at this moment.  */
 		if (opt.if_modified_since && !send_head_first && got_name && file_exists_p(hstat.local_file, NULL)) {
-			*dt |= IF_MODIFIED_SINCE;
+			dt |= IF_MODIFIED_SINCE;
 			uerr_t timestamp_err = set_file_timestamp(&hstat);
 			if (timestamp_err != RETROK)
 				return timestamp_err;
@@ -2668,419 +2638,286 @@ uerr_t http_loop (const struct url *u, struct url *original_url, char **newloc,
 	}
 
 	/* THE loop */
-	do
-	{
-	/* Increment the pass counter.  */
-	++count;
-	sleep_between_retrievals (count);
+	do {
+		/* Increment the pass counter.  */
+		++count;
 
-	/* Get the current time string.  */
-	tms = datetime_str (time (NULL));
+		/* Get the current time string.  */
+		tms = datetime_str(time(NULL));
 
-	/* Print fetch message, if opt.verbose.  */
-	if (opt.verbose)
-	{
-	char *hurl = url_string (u, URL_AUTH_HIDE_PASSWD);
+		/* Print fetch message, if opt.verbose.  */
+		if (opt.verbose) {
+			char *hurl = original_url->url;
+			if (count > 1) {
+				char tmp[256];
+				sprintf(tmp, ("(try:%2d)"), count);
+				log_warn("--%s--  %s  %s\n", tms, tmp, hurl);
+			} else {
+				log_info("--%s--  %s\n", tms, hurl);
+			}
+		}
 
-	if (count > 1)
-	{
-	char tmp[256];
-	sprintf (tmp, ("(try:%2d)"), count);
-	logprintf (LOG_NOTQUIET, "--%s--  %s  %s\n",
-	tms, tmp, hurl);
-	}
-	else
-	{
-	logprintf (LOG_NOTQUIET, "--%s--  %s\n",
-	tms, hurl);
-	}
-	xfree (hurl);
-	}
+		if (send_head_first && !got_head)
+			dt |= HEAD_ONLY;
+		else
+			dt &= ~HEAD_ONLY;
 
-	/* Default document type is empty.  However, if spider mode is
-	on or time-stamping is employed, HEAD_ONLY commands is
-	encoded within *dt.  */
-	if (send_head_first && !got_head)
-	*dt |= HEAD_ONLY;
-	else
-	*dt &= ~HEAD_ONLY;
+		/* Decide whether or not to restart.  */
+		if (force_full_retrieve)
+			hstat.restval = hstat.len;
+		else if (opt.start_pos >= 0)
+			hstat.restval = opt.start_pos;
+		else if (opt.always_rest && got_name && stat(hstat.local_file, &st) == 0 && S_ISREG(st.st_mode))
+			/* When -c is used, continue from on-disk size.  (Can't use
+			   hstat.len even if count>1 because we don't want a failed
+		       first attempt to clobber existing data.)  */
+			hstat.restval = st.st_size;
+		else if (count > 1)
+			/* otherwise, continue where the previous try left off */
+			hstat.restval = hstat.len;
+		else
+			hstat.restval = 0;
 
-	/* Decide whether or not to restart.  */
-	if (force_full_retrieve)
-	hstat.restval = hstat.len;
-	else if (opt.start_pos >= 0)
-	hstat.restval = opt.start_pos;
-	else if (opt.always_rest
-	&& got_name
-	&& stat (hstat.local_file, &st) == 0
-	&& S_ISREG (st.st_mode))
-	/* When -c is used, continue from on-disk size.  (Can't use
-	hstat.len even if count>1 because we don't want a failed
-	first attempt to clobber existing data.)  */
-	hstat.restval = st.st_size;
-	else if (count > 1)
-	/* otherwise, continue where the previous try left off */
-	hstat.restval = hstat.len;
-	else
-	hstat.restval = 0;
+		/* Decide whether to send the no-cache directive.  We send it in two cases:
+		   a) we're using a proxy, and we're past our first retrieval.
+		   Some proxies are notorious臭名昭著的 for caching incomplete data, so
+		   we require a fresh get.
+		   b) caching is explicitly inhibited. */
+		dt |= SEND_NOCACHE;
 
-	/* Decide whether to send the no-cache directive.  We send it in
-	two cases:
-	a) we're using a proxy, and we're past our first retrieval.
-	Some proxies are notorious for caching incomplete data, so
-	we require a fresh get.
-	b) caching is explicitly inhibited. */
+		/* Try fetching the document, or at least its head.  */
+		err = gethttp(u, original_url, &hstat, &dt, count);
 
-	*dt |= SEND_NOCACHE;
+		/* Time?  */
+		tms = datetime_str(time(NULL));
 
-	/* Try fetching the document, or at least its head.  */
-	err = gethttp (u, original_url, &hstat, dt, count);
+		switch (err) {
+		case HERR: 		case HEOF: 				case CONSOCKERR:
+		case CONERROR: 	case READERR: 			case WRITEFAILED:
+		case RANGEERR: 	case FOPEN_EXCL_ERR: 	case GATEWAYTIMEOUT:
+			/* Non-fatal errors continue executing the loop, which will
+			   bring them to "while" statement at the end, to judge
+			   whether the number of tries was exceeded.  */
+			log_warn((count == opt.ntry) ? ("Giving up.\n\n") : ("Retrying.\n\n"));
+			xfree(hstat.message);
+			xfree(hstat.error);
+			continue;
+		case FWRITEERR: case FOPENERR:
+			/* Another fatal error.  */
+			log_warn("Cannot write to %s (%s).\n", hstat.local_file, strerror (errno));
+		case HOSTERR: 		   case CONIMPOSSIBLE: case PROXERR: case SSLINITFAILED:
+		case CONTNOTSUPPORTED: case VERIFCERTERR:  case FILEBADFILE:
+		case UNKNOWNATTR:
+			/* Fatal errors just return from the function.  */
+			ret = err;
+			log_error("UNKNOWNATTR.\n");
+			goto exit;
+		case ATTRMISSING:
+			/* A missing attribute in a Header is a fatal Protocol error. */
+			log_error("Required attribute missing from Header received.\n");
+			ret = err;
+			goto exit;
+		case AUTHFAILED:
+			log_error("Username/Password Authentication Failed.\n");
+			ret = err;
+			goto exit;
+		case CONSSLERR:
+			/* Another fatal error.  */
+			log_error("Unable to establish SSL connection.\n");
+			ret = err;
+			goto exit;
+		case UNLINKERR:
+			/* Another fatal error.  */
+			log_error("Cannot unlink %s (%s).\n", hstat.local_file, strerror (errno));
+			ret = err;
+			goto exit;
+		case NEWLOCATION: case NEWLOCATION_KEEP_POST:
+			/* Return the new location to the caller.  */
+			log_error("ERROR: Redirection (%d) without location.\n", hstat.statcode);
+			ret = WRONGCODE;
+			goto exit;
+		case RETRUNNEEDED:
+			/* The file was already fully retrieved. */
+			log_error("RETRUNNEEDED.\n");
+			ret = RETROK;
+			goto exit;
+		case RETRFINISHED:
+			/* Deal with you later.  */
+			break;
+		default:
+			/* All possibilities should have been exhausted.  */
+			log_error("All possibilities should have been exhausted.\n");
+			abort();
+		}
 
-	/* Time?  */
-	tms = datetime_str (time (NULL));
+		if (!(dt & RETROKF)) {
+			log_warn("dt & RETROKF");
 
-	/* Get the new location (with or without the redirection).  */
-	if (hstat.newloc)
-	*newloc = xstrdup (hstat.newloc);
+			/* Fall back to GET if HEAD fails with a 500 or 501 error code. */
+			/* 500 Internal Server Error; 501 Not Implemented */
+			if (dt & HEAD_ONLY && (hstat.statcode == 500 || hstat.statcode == 501)) {
+				got_head = true;
+				continue;
+			} else {
+				log_error("%s ERROR %d: %s.\n", tms, hstat.statcode, hstat.error);
+			}
 
-	switch (err)
-	{
-	case HERR: case HEOF: case CONSOCKERR:
-	case CONERROR: case READERR: case WRITEFAILED:
-	case RANGEERR: case FOPEN_EXCL_ERR: case GATEWAYTIMEOUT:
-	/* Non-fatal errors continue executing the loop, which will
-	bring them to "while" statement at the end, to judge
-	whether the number of tries was exceeded.  */
-	printwhat (count, opt.ntry);
-	xfree (hstat.message);
-	xfree (hstat.error);
-	continue;
-	case FWRITEERR: case FOPENERR:
-	/* Another fatal error.  */
-	logputs (LOG_VERBOSE, "\n");
-	logprintf (LOG_NOTQUIET, "Cannot write to %s (%s).\n",hstat.local_file, strerror (errno));
-	case HOSTERR: case CONIMPOSSIBLE: case PROXERR: case SSLINITFAILED:
-	case CONTNOTSUPPORTED: case VERIFCERTERR: case FILEBADFILE:
-	case UNKNOWNATTR:
-	/* Fatal errors just return from the function.  */
-	ret = err;
-	goto exit;
-	case ATTRMISSING:
-	/* A missing attribute in a Header is a fatal Protocol error. */
-	logputs (LOG_VERBOSE, "\n");
-	logprintf (LOG_NOTQUIET, "Required attribute missing from Header received.\n");
-	ret = err;
-	goto exit;
-	case AUTHFAILED:
-	logputs (LOG_VERBOSE, "\n");
-	logprintf (LOG_NOTQUIET, "Username/Password Authentication Failed.\n");
-	ret = err;
-	goto exit;
-	case WARC_ERR:
-	/* A fatal WARC error. */
-	logputs (LOG_VERBOSE, "\n");
-	logprintf (LOG_NOTQUIET, "Cannot write to WARC file.\n");
-	ret = err;
-	goto exit;
-	case WARC_TMP_FOPENERR: case WARC_TMP_FWRITEERR:
-	/* A fatal WARC error. */
-	logputs (LOG_VERBOSE, "\n");
-	ret = err;
-	goto exit;
-	case CONSSLERR:
-	/* Another fatal error.  */
-	logprintf (LOG_NOTQUIET, "Unable to establish SSL connection.\n");
-	ret = err;
-	goto exit;
-	case UNLINKERR:
-	/* Another fatal error.  */
-	logputs (LOG_VERBOSE, "\n");
-	logprintf (LOG_NOTQUIET, "Cannot unlink %s (%s).\n", hstat.local_file, strerror (errno));
-	ret = err;
-	goto exit;
-	case NEWLOCATION:
-	case NEWLOCATION_KEEP_POST:
-	/* Return the new location to the caller.  */
-	if (!*newloc)
-	{
-	logprintf (LOG_NOTQUIET, "ERROR: Redirection (%d) without location.\n", hstat.statcode);
-	ret = WRONGCODE;
-	}
-	else
-	{
-	ret = err;
-	}
-	goto exit;
-	case RETRUNNEEDED:
-	/* The file was already fully retrieved. */
-	ret = RETROK;
-	goto exit;
-	case RETRFINISHED:
-	/* Deal with you later.  */
-	break;
-	default:
-	/* All possibilities should have been exhausted.  */
-	abort ();
-	}
+			ret = WRONGCODE;
+			goto exit;
+		}
 
-	if (!(*dt & RETROKF))
-	{
-	char *hurl = NULL;
-	if (!opt.verbose)
-	{
-	/* #### Ugly ugly ugly! */
-	hurl = url_string (u, URL_AUTH_HIDE_PASSWD);
-	logprintf (LOG_NONVERBOSE, "%s:\n", hurl);
-	}
+		/* Did we get the time-stamp? */
+		if (!got_head) {
+			got_head = true;    /* no more time-stamping */
 
-	/* Fall back to GET if HEAD fails with a 500 or 501 error code. */
-	if (*dt & HEAD_ONLY
-	&& (hstat.statcode == 500 || hstat.statcode == 501))
-	{
-	got_head = true;
-	continue;
-	}
-	else if (check_retry_on_http_error (hstat.statcode))
-	{
-	printwhat (count, opt.ntry);
-	continue;
-	}
-	else
-	{
-	logprintf (LOG_NOTQUIET, ("%s ERROR %d: %s.\n"),
-	tms, hstat.statcode, hstat.error);
-	}
-	logputs (LOG_VERBOSE, "\n");
-	ret = WRONGCODE;
-	xfree (hurl);
-	goto exit;
-	}
+			if (opt.timestamping && !hstat.remote_time) {
+				log_warn("Last-modified header missing -- time-stamps turned off.\n");
+			} else if (hstat.remote_time) {
+				/* Convert the date-string into struct tm.  */
+				tmr = http_atotm(hstat.remote_time);
+				if (tmr == (time_t) (-1))
+					log_warn("Last-modified header invalid -- time-stamp ignored.\n");
+				if (dt & HEAD_ONLY)
+					time_came_from_head = true;
+			}
 
-	/* Did we get the time-stamp? */
-	if (!got_head)
-	{
-	got_head = true;    /* no more time-stamping */
+			if (send_head_first) {
+				/* The time-stamping section.  */
+				if (opt.timestamping) {
+					if (hstat.orig_file_name) {
+						if (hstat.remote_time && tmr != (time_t) (-1)) {
+							/* Now time-stamping can be used validly.
+							Time-stamping means that if the sizes of
+							the local and remote file match, and local
+							file is newer than the remote file, it will
+							not be retrieved.  Otherwise, the normal
+							download procedure is resumed.  */
+							if (hstat.orig_file_tstamp >= tmr) {
+								if (hstat.contlen == -1 || hstat.orig_file_size == hstat.contlen) {
+									logprintf (LOG_VERBOSE, "Server file no newer than local file %s -- not retrieving.\n\n",
+									hstat.orig_file_name);
+									ret = RETROK;
+									goto exit;
+								} else {
+									logprintf (LOG_VERBOSE, "The sizes do not match (local %s) -- retrieving.\n",
+									number_to_static_string (hstat.orig_file_size));
+								}
+							} else {
+								force_full_retrieve = true;
+								logputs (LOG_VERBOSE, "Remote file is newer, retrieving.\n");
+							}
 
-	if (opt.timestamping && !hstat.remote_time)
-	{
-	logputs (LOG_NOTQUIET, ("\
-	Last-modified header missing -- time-stamps turned off.\n"));
-	}
-	else if (hstat.remote_time)
-	{
-	/* Convert the date-string into struct tm.  */
-	tmr = http_atotm (hstat.remote_time);
-	if (tmr == (time_t) (-1))
-	logputs (LOG_VERBOSE, ("\
-	Last-modified header invalid -- time-stamp ignored.\n"));
-	if (*dt & HEAD_ONLY)
-	time_came_from_head = true;
-	}
+							logputs (LOG_VERBOSE, "\n");
+						}
+					}
 
-	if (send_head_first)
-	{
-	/* The time-stamping section.  */
-	if (opt.timestamping)
-	{
-	if (hstat.orig_file_name) /* Perform the following
-	checks only if the file
-	we're supposed to
-	download already exists.  */
-	{
-	if (hstat.remote_time &&
-	tmr != (time_t) (-1))
-	{
-	/* Now time-stamping can be used validly.
-	Time-stamping means that if the sizes of
-	the local and remote file match, and local
-	file is newer than the remote file, it will
-	not be retrieved.  Otherwise, the normal
-	download procedure is resumed.  */
-	if (hstat.orig_file_tstamp >= tmr)
-	{
-	if (hstat.contlen == -1
-	|| hstat.orig_file_size == hstat.contlen)
-	{
-	logprintf (LOG_VERBOSE, "Server file no newer than local file %s -- not retrieving.\n\n",
-	hstat.orig_file_name);
-	ret = RETROK;
-	goto exit;
-	}
-	else
-	{
-	logprintf (LOG_VERBOSE, "The sizes do not match (local %s) -- retrieving.\n",
-	number_to_static_string (hstat.orig_file_size));
-	}
-	}
-	else
-	{
-	force_full_retrieve = true;
-	logputs (LOG_VERBOSE, "Remote file is newer, retrieving.\n");
-	}
+					/* free_hstat (&hstat); */
+					hstat.timestamp_checked = true;
+				}
 
-	logputs (LOG_VERBOSE, "\n");
-	}
-	}
+				got_name = true;
+				dt &= ~HEAD_ONLY;
+				count = 0;          /* the retrieve count for HEAD is reset */
+				xfree (hstat.message);
+				xfree (hstat.error);
+				continue;
+			} /* send_head_first */
+		} /* !got_head */
 
-	/* free_hstat (&hstat); */
-	hstat.timestamp_checked = true;
-	}
+		if (opt.useservertimestamps && (tmr != (time_t) (-1))	&& ((hstat.len == hstat.contlen) ||
+				((hstat.res == 0) && (hstat.contlen == -1)))) {
+			const char *fl = NULL;
+			if (fl) {
+				time_t newtmr = -1;
+				/* Reparse time header, in case it's changed. */
+				if (time_came_from_head && hstat.remote_time && hstat.remote_time[0]) {
+					newtmr = http_atotm (hstat.remote_time);
+					if (newtmr != (time_t)-1)
+					tmr = newtmr;
+				}
+			}
+		}
 
-	got_name = true;
-	*dt &= ~HEAD_ONLY;
-	count = 0;          /* the retrieve count for HEAD is reset */
-	xfree (hstat.message);
-	xfree (hstat.error);
-	continue;
-	} /* send_head_first */
-	} /* !got_head */
+		/* End of time-stamping section. */
+		tmrate = retr_rate(hstat.rd_size, hstat.dltime);
+		total_download_time += hstat.dltime;
 
-	if (opt.useservertimestamps
-	&& (tmr != (time_t) (-1))
-	&& ((hstat.len == hstat.contlen) ||
-	((hstat.res == 0) && (hstat.contlen == -1))))
-	{
-	const char *fl = NULL;
-	if (fl)
-	{
-	time_t newtmr = -1;
-	/* Reparse time header, in case it's changed. */
-	if (time_came_from_head
-	&& hstat.remote_time && hstat.remote_time[0])
-	{
-	newtmr = http_atotm (hstat.remote_time);
-	if (newtmr != (time_t)-1)
-	tmr = newtmr;
-	}
-	}
-	}
-	/* End of time-stamping section. */
+		if (hstat.len == hstat.contlen) {
+			if (dt & RETROKF || opt.content_on_error) {
+				bool write_to_stdout = false;
 
-	tmrate = retr_rate (hstat.rd_size, hstat.dltime);
-	total_download_time += hstat.dltime;
+				log_info(write_to_stdout ? "%s (%s) - written to stdout %s[%s/%s]\n" : "%s (%s) - %s saved [%s/%s]\n",
+							tms, tmrate, write_to_stdout ? "" : hstat.local_file,
+							number_to_static_string(hstat.len),
+							number_to_static_string(hstat.contlen));
+				log_info("%s URL:%s [%s/%s] -> \"%s\" [%d]\n", tms, u->url,
+							number_to_static_string(hstat.len),
+							number_to_static_string(hstat.contlen),
+							hstat.local_file, count);
+			}
 
-	if (hstat.len == hstat.contlen)
-	{
-	if (*dt & RETROKF || opt.content_on_error)
-	{
-	bool write_to_stdout = false;
+			total_downloaded_bytes += hstat.rd_size;
+			/* Remember that we downloaded the file for later ".orig" code. */
+			if (dt & ADDED_HTML_EXTENSION)
+				downloaded_file(FILE_DOWNLOADED_AND_HTML_EXTENSION_ADDED, hstat.local_file);
+			else
+				downloaded_file(FILE_DOWNLOADED_NORMALLY, hstat.local_file);
 
-	logprintf (LOG_VERBOSE,
-	write_to_stdout
-	? "%s (%s) - written to stdout %s[%s/%s]\n\n"
-	: "%s (%s) - %s saved [%s/%s]\n\n",
-	tms, tmrate,
-	write_to_stdout ? "" : hstat.local_file,
-	number_to_static_string (hstat.len),
-	number_to_static_string (hstat.contlen));
-	logprintf (LOG_NONVERBOSE,
-	"%s URL:%s [%s/%s] -> \"%s\" [%d]\n",
-	tms, u->url,
-	number_to_static_string (hstat.len),
-	number_to_static_string (hstat.contlen),
-	hstat.local_file, count);
-	}
-	total_downloaded_bytes += hstat.rd_size;
+			ret = RETROK;
+			goto exit;
+		} else if (hstat.res == 0) { /* No read error */
+			if (hstat.contlen == -1) { /* We don't know how much we were supposed
+										  to get, so assume we succeeded. */
+				if (dt & RETROKF || opt.content_on_error) {
+					bool write_to_stdout = false;
+					log_info(write_to_stdout ? "%s (%s) - written to stdout %s[%s]\n"	: "%s (%s) - %s saved [%s]\n",
+								tms, tmrate, write_to_stdout ? "" : hstat.local_file, number_to_static_string (hstat.len));
+					log_info("%s URL:%s [%s] -> \"%s\" [%d]\n", tms, u->url, number_to_static_string (hstat.len), hstat.local_file, count);
+				}
 
-	/* Remember that we downloaded the file for later ".orig" code. */
-	if (*dt & ADDED_HTML_EXTENSION)
-	downloaded_file (FILE_DOWNLOADED_AND_HTML_EXTENSION_ADDED, hstat.local_file);
-	else
-	downloaded_file (FILE_DOWNLOADED_NORMALLY, hstat.local_file);
+				total_downloaded_bytes += hstat.rd_size;
+				/* Remember that we downloaded the file for later ".orig" code. */
+				if (dt & ADDED_HTML_EXTENSION)
+					downloaded_file(FILE_DOWNLOADED_AND_HTML_EXTENSION_ADDED, hstat.local_file);
+				else
+					downloaded_file(FILE_DOWNLOADED_NORMALLY, hstat.local_file);
 
-	ret = RETROK;
-	goto exit;
-	}
-	else if (hstat.res == 0) /* No read error */
-	{
-	if (hstat.contlen == -1)  /* We don't know how much we were supposed
-	to get, so assume we succeeded. */
-	{
-	if (*dt & RETROKF || opt.content_on_error)
-	{
-	bool write_to_stdout = false;
+				ret = RETROK;
+				goto exit;
+			} else if (hstat.len < hstat.contlen) { /* meaning we lost the connection too soon */
+				log_info("%s (%s) - Connection closed at byte %s. ", tms, tmrate, number_to_static_string(hstat.len));
+				log_info((count == opt.ntry) ? ("Giving up.\n") : ("Retrying.\n"));
+				continue;
+			} else if (hstat.len != hstat.restval) {
+				/* Getting here would mean reading more data than
+				   requested with content-length, which we never do.  */
+				abort();
+			} else {
+				/* Getting here probably means that the content-length was
+				 * _less_ than the original, local size. We should probably
+				 * truncate or re-read, or something. FIXME */
+				ret = RETROK;
+				goto exit;
+			}
+		} else { /* from now on hstat.res can only be -1 */
+			if (hstat.contlen == -1) {
+				log_info("%s (%s) - Read error at byte %s (%s).",
+							tms, tmrate, number_to_static_string(hstat.len), hstat.rderrmsg);
+				log_info((count == opt.ntry) ? ("Giving up.\n") : ("Retrying.\n"));
+				continue;
+			} else { /* hstat.res == -1 and contlen is given */
+				log_info("%s (%s) - Read error at byte %s/%s (%s). ",
+						tms, tmrate, number_to_static_string(hstat.len),
+						number_to_static_string (hstat.contlen), hstat.rderrmsg);
+				log_info((count == opt.ntry) ? ("Giving up.\n") : ("Retrying.\n"));
+				continue;
+			}
+		}
+		/* not reached */
+	} while (!opt.ntry || (count < opt.ntry));
 
-	logprintf (LOG_VERBOSE,
-	write_to_stdout
-	? "%s (%s) - written to stdout %s[%s]\n\n"
-	: "%s (%s) - %s saved [%s]\n\n",
-	tms, tmrate,
-	write_to_stdout ? "" : hstat.local_file,
-	number_to_static_string (hstat.len));
-	logprintf (LOG_NONVERBOSE, "%s URL:%s [%s] -> \"%s\" [%d]\n",
-	tms, u->url, number_to_static_string (hstat.len),
-	hstat.local_file, count);
-	}
-	total_downloaded_bytes += hstat.rd_size;
-
-	/* Remember that we downloaded the file for later ".orig" code. */
-	if (*dt & ADDED_HTML_EXTENSION)
-	downloaded_file (FILE_DOWNLOADED_AND_HTML_EXTENSION_ADDED, hstat.local_file);
-	else
-	downloaded_file (FILE_DOWNLOADED_NORMALLY, hstat.local_file);
-
-	ret = RETROK;
-	goto exit;
-	}
-	else if (hstat.len < hstat.contlen) /* meaning we lost the
-	connection too soon */
-	{
-	logprintf (LOG_VERBOSE, "%s (%s) - Connection closed at byte %s. ",
-	tms, tmrate, number_to_static_string (hstat.len));
-	printwhat (count, opt.ntry);
-	continue;
-	}
-	else if (hstat.len != hstat.restval)
-	/* Getting here would mean reading more data than
-	requested with content-length, which we never do.  */
-	abort ();
-	else
-	{
-	/* Getting here probably means that the content-length was
-	* _less_ than the original, local size. We should probably
-	* truncate or re-read, or something. FIXME */
-	ret = RETROK;
-	goto exit;
-	}
-	}
-	else /* from now on hstat.res can only be -1 */
-	{
-	if (hstat.contlen == -1)
-	{
-	logprintf (LOG_VERBOSE,
-	"%s (%s) - Read error at byte %s (%s).",
-	tms, tmrate, number_to_static_string (hstat.len),
-	hstat.rderrmsg);
-	printwhat (count, opt.ntry);
-	continue;
-	}
-	else /* hstat.res == -1 and contlen is given */
-	{
-	logprintf (LOG_VERBOSE,
-	("%s (%s) - Read error at byte %s/%s (%s). "),
-	tms, tmrate,
-	number_to_static_string (hstat.len),
-	number_to_static_string (hstat.contlen),
-	hstat.rderrmsg);
-	printwhat (count, opt.ntry);
-	continue;
-	}
-	}
-	/* not reached */
-	}
-	while (!opt.ntry || (count < opt.ntry));
-
-	exit:
-	if ((ret == RETROK || opt.content_on_error) && local_file)
-	{
-	xfree (*local_file);
-	/* Bugfix: Prevent SIGSEGV when hstat.local_file was left NULL
-	(i.e. due to opt.content_disposition).  */
-	if (hstat.local_file)
-	*local_file = xstrdup (hstat.local_file);
-	}
-	free_hstat (&hstat);
-
+exit:
+	free_hstat(&hstat);
 	return ret;
 }
 
@@ -3133,9 +2970,7 @@ static bool check_end (const char *p)
    issues, or so I was informed.  Dr. Marcus Hennecke's atotm(),
    distributed with phttpd, is excellent, but we cannot use it because
    it is not assigned to the FSF.  So I stuck it with strptime.  */
-
-time_t
-http_atotm (const char *time_string)
+time_t http_atotm (const char *time_string)
 {
   /* NOTE: Solaris strptime man page claims that %n and %t match white
      space, but that's not universally available.  Instead, we simply

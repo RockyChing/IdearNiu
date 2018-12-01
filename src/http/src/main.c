@@ -35,19 +35,16 @@ static void http_dload(const char *durl)
 
 	printf("url[0]: %s", url);
 
-	char *filename = NULL, *redirected_URL = NULL;
-	int dt, url_err;
 	struct url *url_parsed;
 
-	url_parsed = url_parse(url, &url_err, false);
+	url_parsed = url_parse(url, false);
 	if (!url_parsed) {
 		logprintf(LOG_NOTQUIET, "URL error!\n");
 	} else {
-		retrieve_url(url_parsed, &filename, &redirected_URL, NULL, &dt, 0, true);
+		dump_struct_url(url_parsed);
+		retrieve_url(url_parsed);
 	}
 
-	xfree(redirected_URL);
-	xfree(filename);
 	xfree(url);
 	url_free(url_parsed);
 }
@@ -67,10 +64,6 @@ int main(int argc, char **argv)
 	/* Initialize logging ASAP.  */
 	log_init(NULL, false);
 
-	/* All user options have now been processed, so it's now safe to do
-	interoption dependency checks. */
-
-	debug("opt.verbose: %d\n", opt.verbose);
     opt.verbose = 1;
 
 	http_dload(argv[1]);

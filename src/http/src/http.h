@@ -32,8 +32,7 @@ as that of the covered work.  */
 
 struct url;
 
-uerr_t http_loop (const struct url *, struct url *, char **, char **, const char *,
-                  int *);
+uerr_t http_loop (const struct url *, struct url *);
 void http_cleanup (void);
 time_t http_atotm (const char *);
 

@@ -47,9 +47,6 @@ void defaults(void)
 
   opt.read_timeout = 900;
 
-  opt.dot_bytes = 1024;
-  opt.dot_spacing = 10;
-  opt.dots_in_line = 50;
 
 #ifdef HAVE_SSL
   opt.check_cert = CHECK_CERT_ON;
@@ -75,8 +72,7 @@ void defaults(void)
 extern struct ptimer *timer;
 
 /* Free the memory allocated by global variables.  */
-void
-cleanup (void)
+void cleanup (void)
 {
   log_close ();
 
@@ -112,10 +108,8 @@ cleanup (void)
   free_vec (opt.no_proxy);
   xfree (opt.proxy_user);
   xfree (opt.proxy_passwd);
-  xfree (opt.referer);
   xfree (opt.http_user);
   xfree (opt.http_passwd);
-  xfree (opt.dot_style);
 # ifdef HAVE_SSL
   xfree (opt.cert_file);
   xfree (opt.private_key);
@@ -126,18 +120,7 @@ cleanup (void)
 # endif
   xfree (opt.base_href);
   xfree (opt.method);
-  xfree (opt.post_file_name);
-  xfree (opt.body_data);
-  xfree (opt.body_file);
-  xfree (opt.use_askpass);
-
-  xfree (opt.hsts_file);
-
-  xfree (opt.wgetrcfile);
   xfree (exec_name);
-  ptimer_destroy (timer); timer = NULL;
-  quotearg_free ();
-
 #endif /* DEBUG_MALLOC */
 }
 

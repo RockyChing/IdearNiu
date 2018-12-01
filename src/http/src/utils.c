@@ -369,13 +369,13 @@ concat_strings (const char *str0, ...)
 static char *
 fmttime (time_t t, const char *fmt)
 {
-  static char output[32];
-  struct tm *tm = localtime(&t);
-  if (!tm)
-    abort ();
-  if (!strftime(output, sizeof(output), fmt, tm))
-    abort ();
-  return output;
+	static char output[32];
+	struct tm *tm = localtime(&t);
+	if (!tm)
+		abort();
+	if (!strftime(output, sizeof(output), fmt, tm))
+		abort();
+	return output;
 }
 
 /* Return pointer to a static char[] buffer in which zero-terminated
@@ -391,10 +391,9 @@ time_str (time_t t)
 
 /* Like the above, but include the date: YYYY-MM-DD hh:mm:ss.  */
 
-char *
-datetime_str (time_t t)
+char *datetime_str(time_t t)
 {
-  return fmttime(t, "%Y-%m-%d %H:%M:%S");
+	return fmttime(t, "%Y-%m-%d %H:%M:%S");
 }
 
 /* Checks if FILE is a symbolic link, and removes it if it is.  Does
@@ -418,11 +417,11 @@ remove_link (const char *file)
 
 /* Does FILENAME exist? */
 bool
-file_exists_p (const char *filename, file_stats_t *fstats)
+file_exists_p(const char *filename, file_stats_t *fstats)
 {
 	struct stat buf;
 	errno = 0;
-	if (stat (filename, &buf) == 0 && S_ISREG(buf.st_mode) && (((S_IRUSR & buf.st_mode) && (getuid() == buf.st_uid))  ||
+	if (stat(filename, &buf) == 0 && S_ISREG(buf.st_mode) && (((S_IRUSR & buf.st_mode) && (getuid() == buf.st_uid))  ||
 			((S_IRGRP & buf.st_mode) && group_member(buf.st_gid)) || (S_IROTH & buf.st_mode))) {
 		if (fstats != NULL) {
 			fstats->access_err = 0;
