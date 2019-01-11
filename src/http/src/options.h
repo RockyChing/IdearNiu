@@ -126,9 +126,6 @@ struct options {
 		restrict_vms,
 		restrict_windows
 	} restrict_files_os;          /* file name restriction ruleset. */
-	bool restrict_files_ctrl;     /* non-zero if control chars in URLs
-	                               are restricted from appearing in
-	                               generated file names. */
 	bool restrict_files_nonascii; /* non-zero if bytes with values greater
                                    than 127 are restricted. */
 	enum {

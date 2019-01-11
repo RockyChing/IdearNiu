@@ -34,7 +34,6 @@ static void http_dload(const char *durl)
 	}
 
 	printf("url[0]: %s", url);
-
 	struct url *url_parsed;
 
 	url_parsed = url_parse(url, false);

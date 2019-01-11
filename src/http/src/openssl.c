@@ -84,11 +84,11 @@ static void init_prng(void)
 }
 
 /* Print errors in the OpenSSL error stack. */
-static void print_errors (void)
+static void print_errors(void)
 {
     unsigned long err;
-    while ((err = ERR_get_error ()) != 0) {
-        logprintf (LOG_NOTQUIET, "OpenSSL: %s\n", ERR_error_string (err, NULL));
+    while ((err = ERR_get_error()) != 0) {
+        logprintf (LOG_NOTQUIET, "OpenSSL: %s\n", ERR_error_string(err, NULL));
     }
 }
 
@@ -97,7 +97,7 @@ static void print_errors (void)
 
    (options.h intentionally doesn't use values from openssl/ssl.h so
    it doesn't depend specifically on OpenSSL for SSL functionality.)  */
-static int key_type_to_ssl_type (enum keyfile_type type)
+static int key_type_to_ssl_type(enum keyfile_type type)
 {
     switch (type) {
     case keyfile_pem:
@@ -966,7 +966,7 @@ bool ssl_connect_wget(int fd, const char *hostname, int *continue_session)
     /* Register FD with Wget's transport layer, i.e. arrange that our
        functions are used for reading, writing, and polling.  */
     fd_register_transport(fd, &openssl_transport, ctx);
-    log_debug("Handshake successful; connected socket %d to SSL handle 0x%0*lx\n", fd, PTR_FORMAT (conn));
+    log_debug("Handshake successful; connected socket %d to SSL handle 0x%0*lx\n", fd, PTR_FORMAT(conn));
     return true;
 
 error:
@@ -1023,13 +1023,23 @@ static char *_get_rfc2253_formatted(X509_NAME *name)
     char *out = NULL;
     BIO* b;
 
+	/** const BIO_METHOD *BIO_s_mem(void);
+		BIO_s_mem() returns the memory BIO method function
+		A memory BIO is a source/sink BIO which uses memory for its I/O. Data written to a memory BIO is stored
+		in a BUF_MEM structure which is extended as appropriate to accommodate the stored data.
+
+		BIO *BIO_new(const BIO_METHOD *type);
+		int BIO_free(BIO *a);
+		The BIO_new() function returns a new BIO using method @type.
+		BIO_new() returns a newly created BIO or NULL if the call fails.
+	 */
     if ((b = BIO_new(BIO_s_mem()))) {
         if (X509_NAME_print_ex(b, name, 0, XN_FLAG_RFC2253) >= 0 && (len = BIO_number_written(b)) > 0) {
-            out = xmalloc (len + 1);
-            BIO_read (b, out, len);
+            out = xmalloc(len + 1);
+            BIO_read(b, out, len);
             out[len] = 0;
         }
-        BIO_free (b);
+        BIO_free(b);
     }
 
     return out ? out : xstrdup("");
@@ -1068,7 +1078,7 @@ static bool pkp_pin_peer_pubkey(X509 *cert, const char *pinnedpubkey)
         goto cleanup; /* failed */
 
     /* https://www.openssl.org/docs/crypto/d2i_X509.html */
-    len2 = i2d_X509_PUBKEY (X509_get_X509_PUBKEY (cert), (unsigned char **) &temp);
+    len2 = i2d_X509_PUBKEY (X509_get_X509_PUBKEY(cert), (unsigned char **) &temp);
 
     /*
      * These checks are verifying we got back the same values as when we
@@ -1126,6 +1136,10 @@ bool ssl_check_certificate(int fd, const char *host)
     if (opt.check_cert == CHECK_CERT_QUIET && pinsuccess)
         return success;
 
+	/** X509 *SSL_get_peer_certificate(const SSL *ssl);
+		SSL_get_peer_certificate() returns a pointer to the X509 certificate the peer presented.
+		If the peer did not present a certificate, NULL is returned.
+	 */
     cert = SSL_get_peer_certificate(conn);
     if (!cert) {
         log_warn("%s: No certificate presented by %s.", severity, host);
@@ -1141,9 +1155,16 @@ bool ssl_check_certificate(int fd, const char *host)
         xfree(issuer);
     }
 
+	/** long SSL_get_verify_result(const SSL *ssl);
+		SSL_get_verify_result() returns the result of the verification of the X509 certificate presented by the peer, if any.
+
+		If no peer certificate was presented, the returned result code is X509_V_OK.
+		This is because no verification error occurred, it does however not indicate success.
+		SSL_get_verify_result() is only useful in connection with SSL_get_peer_certificate.
+	 */
     vresult = SSL_get_verify_result(conn);
     if (vresult != X509_V_OK) {
-        char *issuer = _get_rfc2253_formatted(X509_get_issuer_name (cert));
+        char *issuer = _get_rfc2253_formatted(X509_get_issuer_name(cert));
         log_warn("%s: cannot verify %s's certificate, issued by %s:", severity, host, issuer);
         xfree(issuer);
 

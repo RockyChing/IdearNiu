@@ -118,7 +118,6 @@ static int log_line_current = -1;
    than create new ones.  */
 static bool trailing_line;
 
-static void check_redirect_output (void);
 
 #define ROT_ADVANCE(num) do {                   \
   if (++num >= SAVED_LOG_LINES)                 \
@@ -318,7 +317,6 @@ logputs (enum log_options o, const char *s)
   FILE *warcfp;
   int errno_save = errno;
 
-  check_redirect_output ();
   if (o == LOG_PROGRESS)
     fp = get_progress_fp ();
   else
@@ -510,7 +508,6 @@ logprintf (enum log_options o, const char *fmt, ...)
   bool done;
   int errno_saved = errno;
 
-  check_redirect_output ();
   errno = errno_saved;
   if (inhibit_logging)
     return;
@@ -797,82 +794,6 @@ log_cleanup (void)
 /* When SIGHUP or SIGUSR1 are received, the output is redirected
    elsewhere.  Such redirection is only allowed once. */
 static const char *redirect_request_signal_name;
-
-/* Redirect output to `wget-log' or back to stdout/stderr.  */
-
-void
-redirect_output (bool to_file, const char *signal_name)
-{
-  if (to_file && logfp != filelogfp)
-    {
-      if (signal_name)
-        {
-          fprintf (stderr, "\n%s received.", signal_name);
-        }
-      if (!filelogfp)
-        {
-          filelogfp = unique_create (DEFAULT_LOGFILE, false, &logfile);
-          if (filelogfp)
-            {
-              fprintf (stderr, "\nRedirecting output to %s.\n",
-                  (logfile));
-              /* Store signal name to tell wget it's permanent redirect to log file */
-              redirect_request_signal_name = signal_name;
-              logfp = filelogfp;
-              /* Dump the context output to the newly opened log.  */
-              log_dump_context ();
-            }
-          else
-            {
-              /* Eek!  Opening the alternate log file has failed.  Nothing we
-                can do but disable printing completely. */
-              fprintf (stderr, "%s: %s; disabling logging.\n",
-                      (logfile) ? logfile : DEFAULT_LOGFILE, strerror (errno));
-              inhibit_logging = true;
-            }
-        }
-      else
-        {
-          fprintf (stderr, "\nRedirecting output to %s.\n", (logfile));
-          logfp = filelogfp;
-          log_dump_context ();
-        }
-    }
-  else if (!to_file && logfp != stdlogfp)
-    {
-      logfp = stdlogfp;
-      log_dump_context ();
-    }
-}
-
-/* Check whether there's a need to redirect output. */
-
-static void
-check_redirect_output (void)
-{
-  /* If it was redirected already to log file by SIGHUP, SIGUSR1 or -o parameter,
-   * it was permanent.
-   * If there was no SIGHUP or SIGUSR1 and shell is interactive
-   * we check if process is fg or bg before every line is printed.*/
-  if (!redirect_request_signal_name && shell_is_interactive)
-    {
-      pid_t foreground_pgrp = tcgetpgrp (STDIN_FILENO);
-
-      if (foreground_pgrp != -1 && foreground_pgrp != getpgrp ())
-        {
-          /* Process backgrounded */
-          redirect_output (true,NULL);
-        }
-      else
-        {
-          /* Process foregrounded */
-          redirect_output (false,NULL);
-        }
-    }
-}
-
-
-
 
 
 

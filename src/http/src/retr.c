@@ -424,7 +424,7 @@ uerr_t retrieve_url(struct url *orig_parsed)
 		result = http_loop(u, orig_parsed);
 	}
 	if (orig_parsed != u) {
-		url_free (u);
+		url_free(u);
 	}
 
 	return result;

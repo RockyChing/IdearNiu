@@ -1249,8 +1249,6 @@ append_uri_pathel (const char *b, const char *e, bool escaped,
     mask = filechr_not_vms;
   else
     mask = filechr_not_windows;
-  if (opt.restrict_files_ctrl)
-    mask |= filechr_control;
 
   /* Copy [b, e) to PATHEL and URL-unescape it. */
   if (escaped)
