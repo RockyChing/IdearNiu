@@ -9,10 +9,8 @@
 #include <unistd.h>
 
 #include <utils.h>
-#include <log_util.h>
+#include <log_ext.h>
 #include <type_def.h>
-
-#define error_null() sys_debug(1, "ERROR: %s() called with NULL!", __FUNCTION__)
 
 /*
  * Print an error message and exit
@@ -66,7 +64,6 @@ int is_recoverable (int error)
 size_t xstrlen(const char *str)
 {
 	if (!str) {
-		error_null();
 		return 0;
 	}
 	return strlen(str);
@@ -75,7 +72,6 @@ size_t xstrlen(const char *str)
 int xstrcmp(const char *s1, const char *s2)
 {
 	if (!s1 || !s2) {
-		error_null();
 		return 0;
 	}
 	return strcmp(s1, s2);
@@ -84,7 +80,6 @@ int xstrcmp(const char *s1, const char *s2)
 int xstrncmp (const char *s1, const char *s2, size_t n)
 {
 	if (!s1 || !s2) {
-		error_null();
 		return 0;
 	}
 	return strncmp(s1, s2, n);
@@ -93,7 +88,6 @@ int xstrncmp (const char *s1, const char *s2, size_t n)
 int xstrcasecmp (const char *s1, const char *s2)
 {
 	if (!s1 || !s2)	{
-		error_null();
 		return 0;
 	}
 	return strcasecmp (s1, s2);
@@ -142,7 +136,7 @@ void *xmalloc(int size)
 	if (!size)
 		size ++;
 	mem = malloc(size);
-	if (mem == (void *)0)
+	if (mem == NULL)
 		panic("Couldn't allocate memory!");
 	return mem;
 }
@@ -156,7 +150,7 @@ void *zmalloc(int size)
 	if (!size)
 		size ++;
 	mem = malloc(size);
-	if (mem == (void *)0)
+	if (mem == NULL)
 		panic("Couldn't allocate memory!");
 	else
 		memset(mem, 0, size);
@@ -171,7 +165,7 @@ void *xrealloc(void *ptr, int size)
 	void *mem;
 
 	mem = realloc(ptr, size);
-	if(mem == (void *)0)
+	if(mem == NULL)
 		panic("Couldn't re-allocate memory!");
 	return mem;
 }
@@ -184,7 +178,7 @@ void *zrealloc(void *ptr, int size)
 	void *mem;
 
 	mem = realloc(ptr, size);
-	if(mem == (void *)0)
+	if(mem == NULL)
 		panic("Couldn't re-allocate memory!");
 	else
 		memset(mem, 0, size);
@@ -376,7 +370,7 @@ static int big_endian()
 int run_command(const char *cmd, cmd_callback cmd_cb)
 {
 	if (!cmd) {
-		warn("run_command() null parameter");
+		log_warn("run_command() null parameter");
 		return -1;
 	}
 
@@ -386,7 +380,7 @@ int run_command(const char *cmd, cmd_callback cmd_cb)
 	 */
 	FILE *fp = popen(cmd, "r");
 	if (fp == NULL) {
-		warn("popen() null return");
+		log_warn("popen() null return");
 		return -1;
 	}
 
@@ -401,7 +395,7 @@ int run_command(const char *cmd, cmd_callback cmd_cb)
 	if (pclose(fp) != -1) {
 		ret = 0;
 	} else {
-		warn("pclose() error: %s", strerror(errno));
+		log_warn("pclose() error: %s", strerror(errno));
 		ret = -1;
 	}
 	return ret;
@@ -411,13 +405,13 @@ int open_for_append(const char *file, const char *buff)
 {
 	int fd = -1;
 	if (!file || !buff) {
-		error("open_for_append(): param is NULL");
+		log_error("open_for_append(): param is NULL");
 		return -1;
 	}
 
 	fd = open(file, O_WRONLY|O_APPEND|O_CREAT, 00644);
 	if (fd == -1) {
-		error("open_for_append(): Cannot open file for append");
+		log_error("open_for_append(): Cannot open file for append");
 		return -1;
 	}
 
@@ -431,13 +425,13 @@ int open_for_read(const char *file, void *buff, size_t count)
 {
 	int fd = -1;
 	if (!file || !buff) {
-		error("open_for_read(): param is NULL");
+		log_error("open_for_read(): param is NULL");
 		return -1;
 	}
 
 	fd = open(file, O_RDONLY, 00644);
 	if (fd == -1) {
-		error("open_for_append(): Cannot open file for append");
+		log_error("open_for_append(): Cannot open file for append");
 		return -1;
 	}
 
@@ -453,13 +447,13 @@ int open_for_write(const char *file, const char *buff, size_t count)
 {
 	int fd = -1;
 	if (!file || !buff) {
-		error("open_for_write(): param is NULL");
+		log_error("open_for_write(): param is NULL");
 		return -1;
 	}
 
 	fd = open(file, O_WRONLY|O_CREAT|O_TRUNC, 00644);
 	if (fd == -1) {
-		error("open_for_write(): Cannot open file for write");
+		log_error("open_for_write(): Cannot open file for write");
 		return -1;
 	}
 
@@ -471,7 +465,7 @@ int open_for_write(const char *file, const char *buff, size_t count)
 				usleep(100 * 1000);
 				continue;
 			}
-			error("open_for_write() error: %s", strerror(errno));
+			log_error("open_for_write() error: %s", strerror(errno));
 			close(fd);
 		    return -1;
 		}

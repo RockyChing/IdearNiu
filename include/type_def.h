@@ -26,10 +26,6 @@ typedef unsigned int   uint32_t;
 typedef s32 status_t;
 typedef s64 nsecs_t;       // nano-seconds
 
-struct list_head {
-	struct list_head *next, *prev;
-};
-
 #define STR_SPLIT_CNT      32
 #define STR_SPLIT_SUB_LEN  32
 #define STR_ERR_NO         0 // parase ok

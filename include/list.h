@@ -1,7 +1,10 @@
 #ifndef _LINUX_LIST_H
 #define _LINUX_LIST_H
 
-#include <type_def.h>
+struct list_head {
+	struct list_head *next, *prev;
+};
+
 /*
  * Simple doubly linked list implementation
  *

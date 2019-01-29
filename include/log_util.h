@@ -66,6 +66,5 @@ extern void sys_debug_ext(int level, const char *tag, int line_num, const char *
 #define SLOGW(x...)   sys_debug_ext(LOG_WARNING, LOG_TAG, __LINE__, x)
 #define SLOGE(x...)   sys_debug_ext(LOG_ERROR, LOG_TAG, __LINE__, x)
 
-
 #endif
 
