@@ -12,6 +12,6 @@ LD		= $(CROSS_COMPILE)ld
 AR		= $(CROSS_COMPILE)ar cr
 STRIP	= $(CROSS_COMPILE)strip
 
-CFLAGS	= -Wall -Wno-unused-function -fmax-errors=1
+CFLAGS	= -I$(TOPDIR)/include -Wall -Wno-unused-function -fmax-errors=1
 LDFLAGS	= -Wl,-gc-sections
 LIBS	:= -lrt

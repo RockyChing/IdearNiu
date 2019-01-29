@@ -10,8 +10,6 @@ $(warning source list $(SRCS))
 # for debug
 # $(warning objs list $(OBJS))
 
-CFLAGS += -I../../include
-
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 	$(STRIP) $@
