@@ -12,6 +12,19 @@
 #define NUM_ELEMENTS(arr) (sizeof(arr) / sizeof(arr[0]))
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
+#define SET_NONBLOCKING(fd) {           \
+        int flags = fcntl(fd, F_GETFL); \
+        flags |= O_NONBLOCK;            \
+        fcntl(fd, F_SETFL, flags);      \
+	}
+
+#define SET_BLOCKING(fd) {              \
+        int flags = fcntl(fd, F_GETFL); \
+        flags &= ~O_NONBLOCK;           \
+        fcntl(fd, F_SETFL, flags);      \
+	}
+
+
 #define TOK_MAX_SZ	(32)
 #define TOK_MAX_CNT (32)
 
