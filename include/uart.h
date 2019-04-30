@@ -24,7 +24,7 @@ enum ComStopBits {
     COM_STOP_2_BITS   = 2,
 };
 
-
+void uart_init(void);
 int uart_open(const char *uart_name);
 void uart_close(int fd);
 int uart_write(int fd, const char *buff, size_t len);

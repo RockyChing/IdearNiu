@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <dirent.h>
 
 #include <utils.h>
 #include <log_ext.h>
@@ -506,5 +507,91 @@ void sleep_s(uint32_t s)
     do {
        err = select(0, NULL, NULL, NULL, &tv);
     } while (err < 0 && errno == EINTR);
+}
+
+void process_stat_all(void)
+{
+	DIR *dir;
+	FILE *fp = NULL;
+	struct dirent *ptr;
+	char buff[64];
+	int ret = 0;
+
+	dir = opendir("/proc");
+	if (dir != NULL) {
+		while ((ptr = readdir(dir)) != NULL) {
+			if (DT_DIR != ptr->d_type || strcmp(ptr->d_name, ".") == 0 || strcmp(ptr->d_name, "..") == 0)
+				continue;
+			snprintf(buff, sizeof(buff), "/proc/%s/status", ptr->d_name);
+			fp = fopen(buff, "r");
+			memset(buff, 0, sizeof(buff));
+			if (fp != NULL) {
+				if (fgets(buff, sizeof(buff)-1, fp) != NULL) {
+					memset(buff, 0, sizeof(buff));
+					if (fgets(buff, sizeof(buff)-1, fp) != NULL) {
+						printf("%s %s", ptr->d_name, buff);
+					}
+				}
+				fclose(fp);
+			}
+		}
+
+		closedir(dir);
+	}
+}
+
+/**
+ * The task state array is a strange "bitmap" of
+ * reasons to sleep. Thus "running" is zero, and
+ * you can test for combinations of others with
+ * simple bit tests.
+ */
+static const char * const task_state_array[] = {
+	"R (running)",		/*   0 */
+	"S (sleeping)",		/*   1 */
+	"D (disk sleep)",	/*   2 */
+	"T (stopped)",		/*   3 */
+	"t (tracing stop)",	/*   4 */
+	"Z (zombie)",		/*   5 */
+	"X (dead)",		    /*   6 */
+};
+
+process_stat_t process_stat(pid_t pid)
+{
+	FILE *fp;
+	process_stat_t st = PROCESS_U_UNKNOWN;
+	char buff[32];
+
+	memset(buff, 0, sizeof(buff));
+	snprintf(buff, sizeof(buff), "/proc/%d/status", pid);
+
+	fp = fopen(buff, "r");
+	if (fp) {
+		if (fgets(buff, sizeof(buff)-1, fp) != NULL) {
+			memset(buff, 0, sizeof(buff));
+			if (fgets(buff, sizeof(buff)-1, fp) != NULL) {
+				if (strstr(buff, "sleeping")) {
+					st = PROCESS_S_SLEEPING;
+				} else if (strstr(buff, "running")) {
+					st = PROCESS_R_RUNNING;
+				} else if (strstr(buff, "zombie")) {
+					st = PROCESS_Z_ZOMBIE;
+				} else if (strstr(buff, "stopped")) {
+					st = PROCESS_T_STOPED;
+				} else if (strstr(buff, "disk sleep")) {
+					st = PROCESS_D_SLEEP;
+				} else if (strstr(buff, "tracing stop")) {
+					st = PROCESS_t_STOPED;
+				} else if (strstr(buff, "dead")) {
+					st = PROCESS_X_DEAD;
+				} else { /* */ }
+			}
+		}
+
+		// printf("/proc/%d/status: %s\n", pid, task_state_array[st]);
+		fclose(fp);
+	}
+
+	return st;
 }
 

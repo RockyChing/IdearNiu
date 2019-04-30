@@ -9,12 +9,18 @@
 #include <linux/types.h>
 
 #include <uart.h>
-#include <log_util.h>
+#include <log_ext.h>
 #include <utils.h>
 #include <type_def.h>
+#include <epoll_loop.h>
+#include <assert.h>
+#include "timeout.h"
 
+struct uart_data {
+	int fd;
+};
 
-#define loge(x...) sys_debug(1, x)
+static struct uart_data g_uart_data;
 
 struct BaudAlias {
     int baud;
@@ -55,7 +61,7 @@ static int get_baud_alias(int speed)
 	return 0;
 }
 
-static int uart_init(int fd, int baudrate,
+static int uart_setup(int fd, int baudrate,
 					int data_bits, int data_parity, int stop_bits)
 {
 	int fd_flags;
@@ -76,20 +82,20 @@ static int uart_init(int fd, int baudrate,
      * On error, -1 is returned, and errno is set appropriately.
 	 */
 	fd_flags = fcntl(fd, F_GETFL);
-	assert_return(fd_flags != -1);
-	assert_return(fcntl(fd, F_SETFL, fd_flags & ~O_NONBLOCK) != -1);
+	assert(fd_flags != -1);
+	assert(fcntl(fd, F_SETFL, fd_flags & ~O_NONBLOCK) != -1);
 	struct termios options;
 
 	/**
      * Return 0 on success, -1 on failure and set errno to indicate the error
      */
     if (tcgetattr(fd, &options) != 0) {
-        sys_debug(1, "Error: terminal tcgetattr");
+        log_error("Error: terminal tcgetattr");
         return -1;
     }
 
 	int baud_alias = get_baud_alias(baudrate);
-	assert_return(baud_alias);
+	assert(baud_alias);
 	cfsetispeed(&options,  baud_alias);
     cfsetospeed(&options,  baud_alias);
 
@@ -107,7 +113,7 @@ static int uart_init(int fd, int baudrate,
 		options.c_cflag |= CS7;
 		break;
 	default:
-        loge("Error: Unsupported terminal data bits!\n");
+        log_error("Error: Unsupported terminal data bits!\n");
         return -1;
 	}
 
@@ -126,7 +132,7 @@ static int uart_init(int fd, int baudrate,
         options.c_iflag |= INPCK;
 		break;
 	default:
-        loge("Error: Unsupported terminal parity!\n");
+        log_error("Error: Unsupported terminal parity!\n");
         return -1;
 	}
 
@@ -139,7 +145,7 @@ static int uart_init(int fd, int baudrate,
 		options.c_cflag |= CSTOPB;
 		break;
 	default:
-        loge("Error: Unsupported terminal parity!\n");
+        log_error("Error: Unsupported terminal parity!\n");
         return -1;
 	}
 
@@ -152,7 +158,7 @@ static int uart_init(int fd, int baudrate,
 
     tcflush(fd, TCIFLUSH);
     if (tcsetattr(fd, TCSANOW, &options) != 0) {
-        loge("Error: terminal tcsetattr");
+        log_error("Error: terminal tcsetattr");
         return -1;
     }
 
@@ -169,21 +175,21 @@ int uart_open(const char *uart_name)
 		uart_name = DEFAULT_UART_NAME;
 
 	int fd = open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
-	assert_return(fd > 0);
+	assert(fd > 0);
 
 	/**
      * isatty() returns 1 if fd is an open file descriptor referring to a terminal;
      * otherwise 0 is returned, and errno is set to indicate the error
      */
     if (!isatty(fd)) {
-        loge("Error: %s is not a terminal", uart_name);
+        log_error("Error: %s is not a terminal", uart_name);
 		return -1;
     }
 
-	assert_return(uart_init(fd, DEFAULT_UART_SPEED,
+	assert(uart_setup(fd, DEFAULT_UART_SPEED,
 			COM_DATA_8_BITS, COM_PARITY_NONE, COM_STOP_1_BITS) == 0);
 
-	sys_debug(3, "DEBUG: %s open done, fd = %d", uart_name, fd);
+	log_debug("DEBUG: %s open done, fd = %d", uart_name, fd);
 	return fd;
 }
 
@@ -199,17 +205,17 @@ void uart_close(int fd)
 int uart_write(int fd, const char *buff, size_t len)
 {
 	int t;
-	assert_param(fd > 0);
-	assert_param(buff != NULL);
-	assert_param(len > 0);
+	assert(fd > 0);
+	assert(buff != NULL);
+	assert(len > 0);
 
 	//lock(xxx);
 	for(t = 0 ; len > 0 ; ) {
 		int n = write(fd, buff + t, len);
 		if (n < 0) {
-			if (is_recoverable(errno))
+			if (errno == EAGAIN || errno == EINTR)
 				continue;
-			sys_debug(1, "ERROR: uart write() error: %s", strerror(errno));
+			log_error("ERROR: uart write() error: %s", strerror(errno));
 			//unlock(xxx);
 		    return (t == 0) ? n : t;
 		}
@@ -224,35 +230,35 @@ int uart_write(int fd, const char *buff, size_t len)
 static int uart_dump(const char *prefix, const uint8_t *ptr, uint32_t length)
 {
     char buffer[100] = {'\0'};
-    u32  offset = 01;
+    uint32_t offset = 01;
     int  i;
 
-	assert_param(prefix != NULL);
-	assert_param(ptr != NULL);
-	assert_param(length > 0);
+	assert(prefix != NULL);
+	assert(ptr != NULL);
+	assert(length > 0);
 
 	// lock; // must put a lock here
     while (offset < length) {
         int off;
         strcpy(buffer, prefix);
         off = strlen(buffer);
-        ASSERT(snprintf(buffer + off, sizeof(buffer) - off, "%08x: ", offset));
+        assert(snprintf(buffer + off, sizeof(buffer) - off, "%08x: ", offset));
         off = strlen(buffer);
 
         for (i = 0; i < 16; i ++) {
             if (offset + i < length) {
-                ASSERT(snprintf(buffer + off, sizeof(buffer) - off, "%02x%c", ptr[offset + i], i == 7 ? '-' : ' '));
+                assert(snprintf(buffer + off, sizeof(buffer) - off, "%02x%c", ptr[offset + i], i == 7 ? '-' : ' '));
             } else {
-                ASSERT(snprintf(buffer + off, sizeof(buffer) - off, " .%c", i == 7 ? '-' : ' '));
+                assert(snprintf(buffer + off, sizeof(buffer) - off, " .%c", i == 7 ? '-' : ' '));
             }
             off = strlen(buffer);
         }
 
-        ASSERT(snprintf(buffer + off, sizeof(buffer) - off, " "));
+        assert(snprintf(buffer + off, sizeof(buffer) - off, " "));
 		off = strlen(buffer);
 		for (i = 0; i < 16; i++)
 			if (offset + i < length) {
-				ASSERT(snprintf(buffer + off, sizeof(buffer) - off, "%c", (ptr[offset + i] < ' ') ? '.' : ptr[offset + i]));
+				assert(snprintf(buffer + off, sizeof(buffer) - off, "%c", (ptr[offset + i] < ' ') ? '.' : ptr[offset + i]));
 				off = strlen(buffer);
 			}
 
@@ -263,3 +269,77 @@ static int uart_dump(const char *prefix, const uint8_t *ptr, uint32_t length)
 	// unlock; 
     return 0;
 }
+
+static void uart_read_cb(int fd, uint32_t events, void *user_data)
+{
+	log_debug("event: %d", events);
+	char buf[128];
+	int nread;
+
+	if (events & EPOLLIN) {
+		nread = read(fd, buf, sizeof(buf)-1);
+		if (nread > 0) {
+			dump_hex(buf, nread);
+		} else if (nread == 0) {
+			log_info("uart read failed: device detached");
+			epoll_remove_fd(fd);
+			close(fd);
+		} else {
+			log_warn("uart read failed: %s", strerror(errno));
+		}
+	} else if (events & (EPOLLERR | EPOLLHUP)) {
+		/* TODO */
+	} else {
+		epoll_remove_fd(fd);
+		close(fd);
+	}
+}
+
+static void uart_destory(void *user_data)
+{
+	log_debug("event: %p", user_data);
+	//epoll_remove_fd(fd);
+	//close(fd);
+}
+
+static bool uart_timer(void *user_data)
+{
+	int ret;
+	int fd = ((struct uart_data *) user_data)->fd;
+
+	const uint8_t buff[] = { 0xAA, 0x0B, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0xEF };
+	time_t timep = time(NULL);
+	struct tm *t = localtime(&timep);
+	printf("%d:%d:%02d\n", t->tm_hour, t->tm_min, t->tm_sec);
+	
+	ret = uart_write(fd, buff, sizeof(buff));
+	if (ret != sizeof(buff)) {
+		log_warn("Uart send failed");
+	} else {
+		log_debug("Uart send.");
+	}
+
+	return true;
+}
+
+void uart_init(void)
+{
+	int fd = uart_open("/dev/ttyUSB0");
+	int ret;
+	uint32_t events;
+
+	memset(&g_uart_data, 0, sizeof(g_uart_data));
+	if (fd > 0) {
+		g_uart_data.fd = fd;
+		events = EPOLLIN | EPOLLERR | EPOLLHUP;
+		ret = epoll_add_fd(fd, events, uart_read_cb, NULL, uart_destory);
+		if (!ret) {
+			log_info("Uart add to epoll.");
+			ret = timeout_add(3000, uart_timer, &g_uart_data, NULL);
+			if (ret) {
+				log_info("Uart timer added.");
+			}
+		}
+	}
+}
+

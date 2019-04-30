@@ -163,7 +163,8 @@ struct io *io_new(int fd)
 	io->fd = fd;
 	io->events = 0;
 	io->close_on_destroy = false;
-
+	// io->read_callback --> can_read_data
+	// io->disconnect_destroy --> disconnect_cb
 	if (mainloop_add_fd(io->fd, io->events, io_callback,
 						io, io_cleanup) < 0) {
 		free(io);

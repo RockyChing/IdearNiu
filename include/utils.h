@@ -1,9 +1,21 @@
 #ifndef _UTILITY_ES_H
 #define _UTILITY_ES_H
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <time.h>
 #include <type_def.h>
+
+typedef enum {
+	PROCESS_R_RUNNING  = 0,
+	PROCESS_S_SLEEPING = 1,
+	PROCESS_D_SLEEP    = 2,
+	PROCESS_T_STOPED   = 3,
+	PROCESS_t_STOPED   = 4,
+	PROCESS_Z_ZOMBIE   = 5,
+	PROCESS_X_DEAD     = 6,
+	PROCESS_U_UNKNOWN  = 0xFF
+} process_stat_t;
 
 #ifndef min
 #define min(a,b) (((a) < (b)) ? (a) :(b))
@@ -24,6 +36,17 @@
         fcntl(fd, F_SETFL, flags);      \
 	}
 
+#define dump_hex(buf, len)	\
+	do { \
+		int i; \
+		char *p = (char*) buf; \
+		for(i = 0; i < len; i++) { \
+			if(0 == (i % 32) && 0 != i) \
+				printf("\n"); \
+			printf("%02x ", (p[i]&0xff)); \
+		} \
+		printf("\n"); \
+	} while(0)
 
 #define TOK_MAX_SZ	(32)
 #define TOK_MAX_CNT (32)
@@ -61,6 +84,18 @@ void *zrealloc(void *ptr, int size);
 void sleep_us(uint32_t us);
 void sleep_ms(uint32_t us);
 void sleep_s(uint32_t us);
+void process_stat_all(void);
+process_stat_t process_stat(pid_t pid);
+
+#define new0(type, count)			\
+	(type *) (__extension__ ({		\
+		size_t __n = (size_t) (count);	\
+		size_t __s = sizeof(type);	\
+		void *__p;			\
+		__p = malloc(__n * __s);	\
+		memset(__p, 0, __n * __s);	\
+		__p;				\
+	}))
 
 #endif
 

@@ -36,7 +36,7 @@ LIBS += -L./lib -lbluetooth
 endif
 
 # -DMS_WIFI_ENABLE
-CFLAGS += -DMIDEA_DEBUG -DCHECK_SDK -DOSTYPE_LINUX -DLINUX
+CFLAGS += -DLINUX
 
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAG) -o $@ $^ $(LIBS)
