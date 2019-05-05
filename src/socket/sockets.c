@@ -461,14 +461,14 @@ int sock_connect(const char *srvip, const int port,
 	struct sockaddr_in server;
 	const socklen_t sinlen = sizeof(struct sockaddr_in);
 
-	int ret;
+	int ret, errno_backup;
 
 	do {
 		if (!srvip) {
-			error("sock_connect() called with NULL or empty server ip");
+			error("sock_connect() NULL or empty server ip");
 			break;
 		} else if (port <= 0) {
-			error("sock_connect() called with invalid port number");
+			error("sock_connect() invalid port number");
 			break;
 		}
 
@@ -485,24 +485,26 @@ int sock_connect(const char *srvip, const int port,
 		info("connect to: %s", srvip);
 		if (timeout <= 0) {
 			ret = connect(sockfd, (struct sockaddr *) &server, sizeof(server));
+			errno_backup = errno;
 			if (ret != 0) {
-				error("#1 connect() failed: %s", strerror(errno));
+				error("#1 connect() failed: %s", strerror(errno_backup));
 				break;
 			}
 
-			//sock_set_blocking(sockfd, SOCKET_NONBLOCK);
+			sock_set_blocking(sockfd, SOCKET_NONBLOCK);
 		} else {
 			/*
 	         * A timeout was specified. We put the socket into non-blocking
 	         * mode, connect, and then wait for the connection to be
 	         * established, fail, or timeout.
 	         */
-	        //sock_set_blocking(sockfd, SOCKET_NONBLOCK);
+	        sock_set_blocking(sockfd, SOCKET_NONBLOCK);
 
 			ret = connect(sockfd, (struct sockaddr *) &server, sizeof(server));
+			errno_backup = errno;
 			if (ret != 0) {
-				if (errno != EINPROGRESS) {
-	                error("#2 connect() failed: %s", strerror(errno));
+				if (errno_backup != EINPROGRESS) {
+	                error("#2 connect() failed: %s", strerror(errno_backup));
 	                break;
 	            }
 
@@ -524,12 +526,21 @@ int sock_connect(const char *srvip, const int port,
                 FD_SET(sockfd, &ex);
 
 				ret = select(sockfd+1, 0, &wr, &ex, &t);
+				errno_backup = errno;
 				if (ret <= 0) {
-					error("#3 connect() failed: %s", strerror(errno));
+					error("#3 connect() failed: %s", strerror(errno_backup));
 					break;
 				}
+
+				/* has connection been established */
+	            int optlen = sizeof(errno_backup);
+	            if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, (void*) &errno_backup, &optlen) < 0 || errno_backup) {
+					error("#4 connect() failed: %s", strerror(errno_backup));
+	                break;
+	            }
 			}
 		}
+
 		return sockfd;
 	} while (0);
 
