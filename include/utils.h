@@ -56,8 +56,8 @@ typedef int (*cmd_callback) (char *buff, size_t len);
 /**
  * If @ptr is NULL, no operation is performed.
  */
-#define xfree(ptr) do { free(ptr); \
-		ptr = NULL; \
+#define xfree(ptr) do { free((ptr)); \
+		(ptr) = NULL; \
 	} while (0)
 
 struct token {

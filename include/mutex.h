@@ -9,11 +9,11 @@ enum {
     MUTEX_SHARED = 1
 };
 
-inline void mutex_init(mutex_t mutex, int type);
-inline void mutex_destroy(mutex_t mutex);
-inline int lock(mutex_t mutex);
-inline int trylock(mutex_t mutex);
-inline int unlock(mutex_t mutex);
+void mutex_init(mutex_t *mutex, int type);
+void mutex_destroy(mutex_t *mutex);
 
+#define lock(mutex) pthread_mutex_lock(&(mutex))
+#define trylock(mutex) pthread_mutex_trylock(&(mutex))
+#define unlock(mutex) pthread_mutex_unlock(&(mutex))
 
 #endif
