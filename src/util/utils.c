@@ -595,3 +595,24 @@ process_stat_t process_stat(pid_t pid)
 	return st;
 }
 
+int set_cloexec(int fd)
+{
+	int res;
+	int val;
+
+	val = fcntl(fd, F_GETFD, 0);
+	if (val < 0) {
+		perror("fcntl F_GETFD");
+		return -1;
+	}
+
+	val |= FD_CLOEXEC; /* enable close-on-exec */
+	res = fcntl(fd, F_SETFD, val);
+	if (res < 0) {
+		perror("fcntl F_SETFD");
+		return -1;
+	}
+
+	return res;
+}
+

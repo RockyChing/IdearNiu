@@ -87,6 +87,8 @@ void sleep_s(uint32_t us);
 void process_stat_all(void);
 process_stat_t process_stat(pid_t pid);
 
+int set_cloexec(int fd);
+
 #define new0(type, count)			\
 	(type *) (__extension__ ({		\
 		size_t __n = (size_t) (count);	\

@@ -401,6 +401,8 @@ int sock_get_server_socket(int type, const int port)
 	if (sockfd == INVALID_SOCKET)
 		return INVALID_SOCKET;
 
+	set_cloexec(sockfd);
+
 	/*
 	 * SO_REUSEADDR - Reuse addresses in bind if *val is nonzero
 	 *
