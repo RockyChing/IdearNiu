@@ -11,6 +11,7 @@ ssize_t xsendto(int s, const void *buf, size_t len, const struct sockaddr *to,
 void xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen);
 char *xmalloc_sockaddr2dotted_noport(const struct sockaddr *sa);
 
+char *sockaddr2str(const struct sockaddr *sa, int flags);
 
 #endif
 

@@ -1,6 +1,7 @@
 #ifndef __LOG_EXT_H
 #define __LOG_EXT_H
 #include <stdio.h>
+#include <stdlib.h>
 #include <log_util.h>
 
 #define COLOR_OFF	"\x1B[0m"
@@ -44,9 +45,18 @@
 			printf(COLOR_RED "[ERROR][%s][%s(%d)]: " format "\r\n", __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__);\
 			fflush(stdout);\
 			printf(COLOR_OFF); \
-			abort(); \
 		}\
 	} while(0)
+
+#define log_fatal(format, ...) \
+		do{\
+			if (1) {\
+				printf(COLOR_RED "[FATAL][%s][%s(%d)]: " format "\r\n", __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__);\
+				fflush(stdout);\
+				printf(COLOR_OFF); \
+				abort(); \
+			}\
+		} while(0)
 
 #endif /* __LOG_EXT_H */
 

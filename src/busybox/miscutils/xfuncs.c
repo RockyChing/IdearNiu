@@ -99,7 +99,7 @@ void xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen)
 
 /* We hijack this constant to mean something else */
 /* It doesn't hurt because we will add this bit anyway */
-static char *sockaddr2str(const struct sockaddr *sa, int flags)
+char *sockaddr2str(const struct sockaddr *sa, int flags)
 {
 	char host[128];
 	char serv[16];
