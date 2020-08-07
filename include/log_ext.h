@@ -2,7 +2,7 @@
 #define __LOG_EXT_H
 #include <stdio.h>
 #include <stdlib.h>
-#include <log_util.h>
+
 
 #define COLOR_OFF	"\x1B[0m"
 #define COLOR_RED	"\x1B[0;91m"

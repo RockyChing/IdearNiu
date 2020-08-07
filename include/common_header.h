@@ -12,7 +12,6 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#include <log_ext.h>
 
 #endif
 
