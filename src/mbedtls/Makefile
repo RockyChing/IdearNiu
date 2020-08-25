@@ -1,10 +1,11 @@
 # Makefile for the project
 
-TARGET = mbedtls_test
+TARGET = mbedtls_demo
 
 TOP_DIR := .
 
 SRCDIRS := $(TOP_DIR)/user
+SRCDIRS += $(TOP_DIR)/user/socket
 SRCDIRS += $(TOP_DIR)/mbedtls-2.7.15/library
 
 SRCFIXS  := .c
@@ -20,7 +21,7 @@ OBJS := $(patsubst %.c,%.o,$(SRCS))
 
 CC = gcc -g -Wall -fmax-errors=1
 
-#-Werror 
+#-Werror
 
 CFLAGS = -I$(TOP_DIR)/user -I$(TOP_DIR)/mbedtls-2.7.15/include  -Wall -Wno-unused-function
 
